@@ -79,7 +79,9 @@ fun HudButton(
     Button(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.heightIn(min = 44.dp),
+        // tv-material handles only D-pad/Enter; add touch taps without adding a second focus target.
+        modifier = modifier.heightIn(min = 44.dp)
+            .pointerInput(enabled, onClick) { if (enabled) detectTapGestures { onClick() } },
         shape = ButtonDefaults.shape(Hud.Shape),
         scale = ButtonDefaults.scale(focusedScale = Hud.FOCUS_SCALE),
         glow = ButtonDefaults.glow(),

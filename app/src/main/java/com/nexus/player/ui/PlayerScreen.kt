@@ -123,8 +123,7 @@ fun PlayerScreen(c: PlaybackController, onExportDiagnostics: () -> Unit) {
                     else -> false
                 }
             }
-            .focusable()
-            .pointerInput(Unit) { detectTapGestures { if (overlay) overlay = false else showOverlay() } },
+            .focusable(),
     ) {
         AndroidView(
             factory = { ctx ->
@@ -136,6 +135,25 @@ fun PlayerScreen(c: PlaybackController, onExportDiagnostics: () -> Unit) {
                 }
             },
             modifier = Modifier.fillMaxSize(),
+        )
+
+        // Touch layer above video, below HUD: tap toggles overlay; double-tap outer thirds seeks, centre play/pause.
+        Box(
+            Modifier.fillMaxSize().pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = { if (overlay) overlay = false else showOverlay() },
+                    onDoubleTap = { o ->
+                        when (val zone = doubleTapZone(o.x, size.width.toFloat())) {
+                            0 -> if (player.isPlaying) player.pause() else player.play()
+                            else -> {
+                                c.seekBy(zone)
+                                seekHud = "${if (zone > 0) "+" else "−"}${c.prefs.seekStepSec} s · ${tc(player.currentPosition)}"
+                                seekHudAt = System.currentTimeMillis()
+                            }
+                        }
+                    },
+                )
+            },
         )
 
         if (stats) StatsPanel(c, position, buffered, Modifier.align(Alignment.TopStart).padding(16.dp))
@@ -160,7 +178,7 @@ fun PlayerScreen(c: PlaybackController, onExportDiagnostics: () -> Unit) {
             }
         }
 
-        if (!overlay && seekHud != null && now - seekHudAt < HUD_TIMEOUT_MS) {
+        if (seekHud != null && now - seekHudAt < HUD_TIMEOUT_MS) {
             // Thumbnail preview needs source trickplay; degrade to timecode.
             Text(seekHud!!, style = Hud.Mono, modifier = Modifier.align(Alignment.Center).glass().padding(16.dp))
         }
@@ -170,7 +188,7 @@ fun PlayerScreen(c: PlaybackController, onExportDiagnostics: () -> Unit) {
                 Text("PLAYBACK ERROR", style = Hud.Label.copy(color = Hud.Amber))
                 Text(err, style = Hud.Mono.copy(color = Hud.TextC))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    HudButton({ player.prepare(); player.play() }) { Text("Retry") }
+                    HudButton(c::retry) { Text("Retry") }
                     HudButton(onExportDiagnostics) { Text("Export diagnostics") }
                 }
             }
@@ -373,6 +391,13 @@ private fun Preset.label() = when (this) {
     Preset.VOCAL_ISOLATION -> "Vocal Isolation"
     Preset.NIGHT -> "Night Mode"
     Preset.CUSTOM -> "Custom 5-Band"
+}
+
+/** -1 = left third (back), 1 = right third (forward), 0 = centre. */
+internal fun doubleTapZone(x: Float, width: Float): Int = when {
+    x < width / 3f -> -1
+    x > width * 2f / 3f -> 1
+    else -> 0
 }
 
 internal fun tc(ms: Long): String {

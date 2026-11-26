@@ -114,6 +114,12 @@ class PlaybackController(private val activity: Activity, val request: StreamRequ
         }
     }
 
+    fun retry() {
+        error = null
+        player.prepare()
+        player.play()
+    }
+
     fun answerResume(resume: Boolean) {
         resumePrompt?.let { if (resume) player.seekTo(it.positionMs) }
         resumePrompt = null
