@@ -55,3 +55,11 @@ dependencies {
 }
 
 tasks.withType<Test> { testLogging { events("passed", "failed") } }
+
+// Copies the debug APK to <root>/apk/ (gitignored) for sharing outside build/.
+tasks.register<Copy>("exportApk") {
+    dependsOn("assembleDebug")
+    from(layout.buildDirectory.dir("outputs/apk/debug")) { include("*.apk") }
+    into(rootProject.layout.projectDirectory.dir("apk"))
+    rename { "nexus-player-debug.apk" }
+}

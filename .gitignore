@@ -10,3 +10,4 @@ temp/
 *.keystore
 *.p12
 .env*
+apk/
