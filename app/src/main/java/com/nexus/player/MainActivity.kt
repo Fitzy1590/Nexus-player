@@ -39,6 +39,7 @@ import com.nexus.player.ui.glass
 @UnstableApi
 class MainActivity : ComponentActivity() {
     private var controller by mutableStateOf<PlaybackController?>(null)
+    private var completed = false
 
     private val openDocument = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) play(StreamRequest(uri.toString(), null, null, emptyMap()))
@@ -63,11 +64,22 @@ class MainActivity : ComponentActivity() {
 
     private fun play(req: StreamRequest) {
         controller?.release()
-        controller = PlaybackController(this, req).also { it.start() }
+        completed = false
+        controller = PlaybackController(this, req, onCompleted = {
+            // Episode finished: hand control (and the "watched" result) back to the launching app.
+            completed = true
+            if (req.external) finish()
+        }).also { it.start() }
     }
 
     private fun exportDiagnostics(c: PlaybackController) {
         startActivity(Intent.createChooser(DiagLog.export(this, c.diagnosticState()), "Export Diagnostic Package"))
+    }
+
+    /** Every exit path (Back, completion) reports progress to the caller if it asked for a result. */
+    override fun finish() {
+        controller?.takeIf { it.request.external }?.let { setResult(RESULT_OK, it.resultIntent(completed)) }
+        super.finish()
     }
 
     override fun onStop() {

@@ -22,7 +22,7 @@ Status: **VOTED — Option A (2026-11-26).** Phase 2 unlocked.
 
 ### P1 Dual-Core HW Decode
 - Primary: Media3 ExoPlayer with `DefaultRenderersFactory` (HW MediaCodec first). Fallback to libmpv on `PlaybackException` decoder errors or known-unsupported codec (VC-1, AV1 10-bit on devices lacking HW AV1).
-- `DefaultLoadControl.Builder().setBufferDurationsMs(…, 60_000, …).setBackBuffer(5_000, true)`. [ESTABLISHED: API exists]
+- `DefaultLoadControl`: min = max = 180 s (continuous refill), start 1 s / rebuffer 2.5 s, back-buffer 30 s. Byte cap heap/2 ≤ 768 MB is the effective limit for 4K. (Revised 2026-11-26 per user request; was 60 s / 5 s.)
 - Constraint: 60 s @ ~80 Mbps 4K ≈ 600 MB; must cap via `setTargetBufferBytes` + `setPrioritizeTimeOverSizeThresholds(false)` on low-RAM TV boxes. [PLAUSIBLE: arithmetic]
 - "Zero-buffer" is a goal, not a guarantee — network-bound. [ESTABLISHED]
 

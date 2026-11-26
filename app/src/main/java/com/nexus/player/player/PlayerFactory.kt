@@ -2,12 +2,11 @@ package com.nexus.player.player
 
 import android.app.ActivityManager
 import android.content.Context
-import android.os.Handler
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
@@ -16,29 +15,41 @@ import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import com.nexus.player.audio.DspEngine
 import com.nexus.player.audio.NexusAudioProcessor
+import okhttp3.OkHttpClient
+import java.util.concurrent.TimeUnit
 
 @UnstableApi
 object PlayerFactory {
-    const val FORWARD_BUFFER_MS = 60_000
-    const val BACK_BUFFER_MS = 5_000
-    private const val MAX_TARGET_BYTES = 400L * 1024 * 1024
+    /** Time ceiling; the byte cap below is the real limit for high-bitrate 4K. */
+    const val FORWARD_BUFFER_MS = 180_000
+    /** Covers several back-steps (10–30 s) so rewinds replay from memory instead of re-downloading. */
+    const val BACK_BUFFER_MS = 30_000
+    private const val MAX_TARGET_BYTES = 768L * 1024 * 1024
 
-    /** Heap-bounded byte cap: 60 s of ~80 Mbps 4K ≈ 600 MB would exceed most TV heaps. */
+    /** Half the (large) heap: allocator byte[]s live in the Java heap, so this bounds OOM risk. */
     fun targetBufferBytes(heapMb: Int): Int =
-        minOf(MAX_TARGET_BYTES, heapMb.toLong() * 1024 * 1024 / 3).toInt().coerceAtLeast(32 * 1024 * 1024)
+        minOf(MAX_TARGET_BYTES, heapMb.toLong() * 1024 * 1024 / 2).toInt().coerceAtLeast(32 * 1024 * 1024)
+
+    private val okHttp by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(8, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .followSslRedirects(true)
+            .build()
+    }
 
     fun create(ctx: Context, dsp: DspEngine, headers: Map<String, String>): ExoPlayer {
         val am = ctx.getSystemService(ActivityManager::class.java)
         val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(30_000, FORWARD_BUFFER_MS, 1_500, 3_000)
+            .setBufferDurationsMs(FORWARD_BUFFER_MS, FORWARD_BUFFER_MS, 1_000, 2_500)
             .setBackBuffer(BACK_BUFFER_MS, true)
             .setTargetBufferBytes(targetBufferBytes(am.largeMemoryClass))
             .setPrioritizeTimeOverSizeThresholds(false)
             .build()
 
         val ua = headers.entries.firstOrNull { it.key.equals("User-Agent", true) }?.value
-        val http = DefaultHttpDataSource.Factory()
-            .setAllowCrossProtocolRedirects(true)
+        // OkHttp: pooled keep-alive connections + HTTP/2, so seek range-requests skip TCP/TLS setup.
+        val http = OkHttpDataSource.Factory(okHttp)
             .setDefaultRequestProperties(headers.filterKeys { !it.equals("User-Agent", true) })
             .apply { if (ua != null) setUserAgent(ua) }
         val dataSource = DefaultDataSource.Factory(ctx, http)

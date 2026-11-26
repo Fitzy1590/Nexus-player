@@ -68,9 +68,15 @@ class ParsingTest {
         assertFalse(NexusDb.shouldResume(s(30_000, 100_000, done = true)))
     }
 
+    /** 512 MB large-heap TV box must hold ≥25 s of 80 Mbps 4K (old heap/3 cap gave ~17 s). */
+    @Test fun bufferHoldsEnough4kOnTypicalTvHeap() {
+        val seconds = PlayerFactory.targetBufferBytes(512) * 8.0 / 80_000_000
+        assertTrue("seconds=$seconds", seconds >= 25)
+    }
+
     @Test fun bufferBytesBoundedByHeap() {
-        assertEquals(512 * 1024 * 1024 / 3, PlayerFactory.targetBufferBytes(512))
-        assertEquals(400 * 1024 * 1024, PlayerFactory.targetBufferBytes(4096))
+        assertEquals(256 * 1024 * 1024, PlayerFactory.targetBufferBytes(512))
+        assertEquals(768 * 1024 * 1024, PlayerFactory.targetBufferBytes(4096))
         assertEquals(32 * 1024 * 1024, PlayerFactory.targetBufferBytes(64))
     }
 }

@@ -50,6 +50,26 @@ import com.nexus.player.player.PlaybackController
 import com.nexus.player.player.PlayerFactory
 import com.nexus.player.player.Prefs
 import kotlinx.coroutines.delay
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Constraints
+import com.nexus.player.player.SeekAccumulator
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 private enum class Panel { NONE, SOUND, AUDIO, SUBS, SPEED, SETTINGS }
 
@@ -74,6 +94,35 @@ fun PlayerScreen(c: PlaybackController, onExportDiagnostics: () -> Unit) {
     var playing by remember { mutableStateOf(false) }
     val root = remember { FocusRequester() }
     val playFocus = remember { FocusRequester() }
+    val scope = rememberCoroutineScope()
+    val seeker = remember { SeekAccumulator() }
+    var pending by remember { mutableStateOf<Long?>(null) }
+    var seekJob by remember { mutableStateOf<Job?>(null) }
+    var zoom by remember { mutableFloatStateOf(1f) }
+    var zoomHudAt by remember { mutableLongStateOf(0L) }
+    var lastEdgeTapAt by remember { mutableLongStateOf(0L) }
+    var lastEdgeZone by remember { mutableIntStateOf(0) }
+
+    // Seeks are coalesced: inputs move a pending target; one real seek fires once input settles.
+    fun commitSeek(afterMs: Long) {
+        seekJob?.cancel()
+        seekJob = scope.launch {
+            delay(afterMs)
+            seeker.take()?.let(c::seekTo)
+            pending = null
+        }
+    }
+    fun showTarget(t: Long, commitAfterMs: Long?) {
+        pending = t
+        val d = t - player.currentPosition
+        seekHud = "${if (d >= 0) "+" else "−"}${kotlin.math.abs(d) / 1000} s → ${tc(t)}"
+        seekHudAt = System.currentTimeMillis()
+        lastInput = seekHudAt
+        if (commitAfterMs != null) commitSeek(commitAfterMs) else seekJob?.cancel()
+    }
+    fun queueSeek(deltaMs: Long) =
+        showTarget(seeker.nudge(player.currentPosition, c.durationMs, deltaMs), SeekAccumulator.SETTLE_MS)
+    fun scrub(t: Long, commit: Boolean) = showTarget(seeker.set(t, c.durationMs), if (commit) 0L else null)
 
     // 250 ms UI clock; also drives auto-hide.
     LaunchedEffect(Unit) {
@@ -98,6 +147,7 @@ fun PlayerScreen(c: PlaybackController, onExportDiagnostics: () -> Unit) {
         Modifier
             .fillMaxSize()
             .background(Color.Black)
+            .clipToBounds()
             .focusRequester(root)
             .onPreviewKeyEvent { e ->
                 lastInput = System.currentTimeMillis()
@@ -110,16 +160,14 @@ fun PlayerScreen(c: PlaybackController, onExportDiagnostics: () -> Unit) {
                     Key.DirectionDown -> { c.nudgeVolume(-0.05f); volumeHudAt = System.currentTimeMillis(); true }
                     Key.DirectionLeft, Key.DirectionRight -> {
                         val dir = if (e.key == Key.DirectionRight) 1 else -1
-                        c.seekBy(dir)
-                        seekHud = "${if (dir > 0) "+" else "−"}${c.prefs.seekStepSec} s · ${tc(player.currentPosition)}"
-                        seekHudAt = System.currentTimeMillis(); true
+                        queueSeek(dir * c.stepMs * SeekAccumulator.multiplier(e.nativeKeyEvent.repeatCount)); true
                     }
                     Key.DirectionCenter, Key.Enter, Key.NumPadEnter, Key.Menu -> { showOverlay(); true }
                     Key.MediaPlayPause, Key.Spacebar -> { if (player.isPlaying) player.pause() else player.play(); true }
                     Key.MediaPlay -> { player.play(); true }
                     Key.MediaPause -> { player.pause(); true }
-                    Key.MediaFastForward -> { c.seekBy(1); true }
-                    Key.MediaRewind -> { c.seekBy(-1); true }
+                    Key.MediaFastForward -> { queueSeek(c.stepMs * SeekAccumulator.multiplier(e.nativeKeyEvent.repeatCount)); true }
+                    Key.MediaRewind -> { queueSeek(-c.stepMs * SeekAccumulator.multiplier(e.nativeKeyEvent.repeatCount)); true }
                     else -> false
                 }
             }
@@ -134,25 +182,51 @@ fun PlayerScreen(c: PlaybackController, onExportDiagnostics: () -> Unit) {
                     this.player = player
                 }
             },
-            modifier = Modifier.fillMaxSize(),
+            // Zoom = enlarge the video surface around the centre; the root clips the overflow.
+            modifier = Modifier.fillMaxSize().layout { m, cons ->
+                val w = (cons.maxWidth * zoom).roundToInt()
+                val h = (cons.maxHeight * zoom).roundToInt()
+                val p = m.measure(Constraints.fixed(w, h))
+                layout(cons.maxWidth, cons.maxHeight) { p.place((cons.maxWidth - w) / 2, (cons.maxHeight - h) / 2) }
+            },
         )
 
         // Touch layer above video, below HUD: tap toggles overlay; double-tap outer thirds seeks, centre play/pause.
         Box(
             Modifier.fillMaxSize().pointerInput(Unit) {
                 detectTapGestures(
-                    onTap = { if (overlay) overlay = false else showOverlay() },
+                    onTap = { o ->
+                        // After an edge double-tap, further single taps on the same edge keep stepping.
+                        val zone = doubleTapZone(o.x, size.width.toFloat())
+                        val t = System.currentTimeMillis()
+                        if (zone != 0 && zone == lastEdgeZone && t - lastEdgeTapAt < EDGE_CHAIN_MS) {
+                            lastEdgeTapAt = t; queueSeek(zone * c.stepMs)
+                        } else if (overlay) overlay = false else showOverlay()
+                    },
                     onDoubleTap = { o ->
                         when (val zone = doubleTapZone(o.x, size.width.toFloat())) {
                             0 -> if (player.isPlaying) player.pause() else player.play()
-                            else -> {
-                                c.seekBy(zone)
-                                seekHud = "${if (zone > 0) "+" else "−"}${c.prefs.seekStepSec} s · ${tc(player.currentPosition)}"
-                                seekHudAt = System.currentTimeMillis()
-                            }
+                            else -> { lastEdgeZone = zone; lastEdgeTapAt = System.currentTimeMillis(); queueSeek(zone * c.stepMs) }
                         }
                     },
                 )
+            }.pointerInput(Unit) {
+                // Two-finger pinch: spread to zoom in (100–300 %), pinch to zoom out; snaps to 100 % near fit.
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false)
+                    do {
+                        val ev = awaitPointerEvent()
+                        if (ev.changes.count { it.pressed } >= 2) {
+                            val f = ev.calculateZoom()
+                            if (f != 1f) {
+                                zoom = nextZoom(zoom, f)
+                                zoomHudAt = System.currentTimeMillis()
+                                ev.changes.forEach { it.consume() }
+                            }
+                        }
+                    } while (ev.changes.any { it.pressed })
+                    zoom = snapZoom(zoom)
+                }
             },
         )
 
@@ -178,7 +252,11 @@ fun PlayerScreen(c: PlaybackController, onExportDiagnostics: () -> Unit) {
             }
         }
 
-        if (seekHud != null && now - seekHudAt < HUD_TIMEOUT_MS) {
+        if (now - zoomHudAt < HUD_TIMEOUT_MS) {
+            Text("ZOOM ${Math.round(zoom * 100)}%", style = Hud.Mono, modifier = Modifier.align(Alignment.TopCenter).padding(16.dp).glass().padding(16.dp))
+        }
+
+        if (seekHud != null && (pending != null || now - seekHudAt < HUD_TIMEOUT_MS)) {
             // Thumbnail preview needs source trickplay; degrade to timecode.
             Text(seekHud!!, style = Hud.Mono, modifier = Modifier.align(Alignment.Center).glass().padding(16.dp))
         }
@@ -224,24 +302,29 @@ fun PlayerScreen(c: PlaybackController, onExportDiagnostics: () -> Unit) {
                     }
                 }
                 Column(Modifier.fillMaxWidth().glass().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Timeline(position, buffered, duration)
+                    SeekBar(
+                        pos = pending ?: position, buf = buffered, dur = duration,
+                        onNudge = { dir, repeat -> queueSeek(dir * c.stepMs * SeekAccumulator.multiplier(repeat)) },
+                        onScrub = ::scrub,
+                    )
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(tc(position), style = Hud.Mono.copy(color = Hud.TextC))
+                        Text(tc(pending ?: position), style = Hud.Mono.copy(color = if (pending != null) Hud.Amber else Hud.TextC))
                         Text(" / ${tc(duration)}", style = Hud.Mono.copy(color = Hud.Muted))
                         Spacer(Modifier.weight(1f))
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            item { HudButton({ c.seekBy(-1) }) { Text("−${c.prefs.seekStepSec}s") } }
+                            item { HudButton({ queueSeek(-c.stepMs) }) { Text("−${c.prefs.seekStepSec}s") } }
                             item {
                                 HudButton({ if (player.isPlaying) player.pause() else player.play() }, Modifier.focusRequester(playFocus)) {
                                     Text(if (playing) "Pause" else "Play")
                                 }
                             }
-                            item { HudButton({ c.seekBy(1) }) { Text("+${c.prefs.seekStepSec}s") } }
+                            item { HudButton({ queueSeek(c.stepMs) }) { Text("+${c.prefs.seekStepSec}s") } }
                             fun toggle(p: Panel) { panel = if (panel == p) Panel.NONE else p }
                             item { HudButton({ toggle(Panel.SOUND) }, selected = panel == Panel.SOUND) { Text("Sound") } }
                             item { HudButton({ toggle(Panel.AUDIO) }, selected = panel == Panel.AUDIO) { Text("Audio") } }
                             item { HudButton({ toggle(Panel.SUBS) }, selected = panel == Panel.SUBS) { Text("Subs") } }
                             item { HudButton({ toggle(Panel.SPEED) }, selected = panel == Panel.SPEED) { Text("${fmt2(c.speed)}×") } }
+                            if (zoom != 1f) item { HudButton({ zoom = 1f; zoomHudAt = System.currentTimeMillis() }) { Text("Zoom ${Math.round(zoom * 100)}% · Reset") } }
                             item { HudButton({ stats = !stats }, selected = stats) { Text("Stats") } }
                             item { HudButton({ toggle(Panel.SETTINGS) }, selected = panel == Panel.SETTINGS) { Text("Settings") } }
                         }
@@ -252,12 +335,47 @@ fun PlayerScreen(c: PlaybackController, onExportDiagnostics: () -> Unit) {
     }
 }
 
+/** Focusable + touch seek bar: D-pad Left/Right steps (hold accelerates); tap jumps; drag scrubs, commits on release. */
 @Composable
-private fun Timeline(pos: Long, buf: Long, dur: Long) {
+private fun SeekBar(pos: Long, buf: Long, dur: Long, onNudge: (Int, Int) -> Unit, onScrub: (Long, Boolean) -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    var dragX by remember { mutableFloatStateOf(0f) }
     val d = dur.coerceAtLeast(1).toFloat()
-    Box(Modifier.fillMaxWidth().height(6.dp).background(Color(0x14FFFFFF), Hud.Shape)) {
-        Box(Modifier.fillMaxWidth((buf / d).coerceIn(0f, 1f)).height(6.dp).background(Color(0x4000F2FE), Hud.Shape))
-        Box(Modifier.fillMaxWidth((pos / d).coerceIn(0f, 1f)).height(6.dp).background(Hud.Cyan, Hud.Shape))
+    fun at(x: Float, w: Int) = (x / w.coerceAtLeast(1)).coerceIn(0f, 1f).let { (it * d).toLong() }
+    Canvas(
+        Modifier
+            .fillMaxWidth()
+            .height(44.dp)
+            .border(if (focused) 3.dp else 0.dp, if (focused) Hud.Cyan else Color.Transparent, Hud.Shape)
+            .onFocusChanged { focused = it.isFocused }
+            .onKeyEvent {
+                if (it.type != KeyEventType.KeyDown || dur <= 0) return@onKeyEvent false
+                when (it.key) {
+                    Key.DirectionLeft -> { onNudge(-1, it.nativeKeyEvent.repeatCount); true }
+                    Key.DirectionRight -> { onNudge(1, it.nativeKeyEvent.repeatCount); true }
+                    else -> false
+                }
+            }
+            .focusable()
+            .pointerInput(dur) { detectTapGestures { if (dur > 0) onScrub(at(it.x, size.width), true) } }
+            .pointerInput(dur) {
+                detectHorizontalDragGestures(
+                    onDragStart = { dragX = it.x },
+                    onDragEnd = { if (dur > 0) onScrub(at(dragX, size.width), true) },
+                ) { change, _ -> dragX = change.position.x; if (dur > 0) onScrub(at(dragX, size.width), false) }
+            }
+            .padding(horizontal = 8.dp),
+    ) {
+        val y = size.height / 2
+        val h = 6.dp.toPx()
+        fun bar(frac: Float, color: Color) = drawRoundRect(
+            color, Offset(0f, y - h / 2), Size(size.width * frac.coerceIn(0f, 1f), h), CornerRadius(h / 2),
+        )
+        bar(1f, Color(0x14FFFFFF))
+        bar(buf / d, Color(0x4000F2FE))
+        bar(pos / d, Hud.Cyan)
+        drawCircle(if (focused) Hud.Cyan else Hud.TextC, radius = if (focused) 8.dp.toPx() else 6.dp.toPx(),
+            center = Offset(size.width * (pos / d).coerceIn(0f, 1f), y))
     }
 }
 
@@ -392,6 +510,12 @@ private fun Preset.label() = when (this) {
     Preset.NIGHT -> "Night Mode"
     Preset.CUSTOM -> "Custom 5-Band"
 }
+
+private const val EDGE_CHAIN_MS = 1_000L
+
+internal fun nextZoom(current: Float, factor: Float): Float = (current * factor).coerceIn(1f, 3f)
+
+internal fun snapZoom(z: Float): Float = if (z < 1.04f) 1f else z
 
 /** -1 = left third (back), 1 = right third (forward), 0 = centre. */
 internal fun doubleTapZone(x: Float, width: Float): Int = when {

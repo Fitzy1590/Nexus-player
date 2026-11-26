@@ -9,6 +9,10 @@ data class StreamRequest(
     val mimeType: String?,
     val title: String?,
     val headers: Map<String, String>,
+    /** Start position supplied by the caller (MX/VLC `position` extra); 0 = none. */
+    val startPositionMs: Long = 0,
+    /** True when launched by another app via VIEW (result is returned on exit). */
+    val external: Boolean = false,
 )
 
 object IntentParser {
@@ -45,8 +49,29 @@ object IntentParser {
             mimeType = intent.type,
             title = intent.getStringExtra("title") ?: intent.getStringExtra(Intent.EXTRA_TITLE),
             headers = headers,
+            startPositionMs = startPosition(intent),
+            external = true,
         )
     }
+
+    /** MX Player sends `position` as Int ms; VLC uses `extra_position` (Long ms). */
+    private fun startPosition(i: Intent): Long {
+        val mx = i.getIntExtra("position", 0).toLong()
+        val vlc = i.getLongExtra("extra_position", 0L)
+        return maxOf(mx, vlc).coerceAtLeast(0)
+    }
+
+    /**
+     * Result for the launching app (Stremio/Nuvio/etc.). Both common conventions are filled:
+     * MX Player (`position`/`duration` Int ms, `end_by`) and VLC (`extra_position`/`extra_duration` Long ms).
+     */
+    fun resultIntent(positionMs: Long, durationMs: Long, completed: Boolean, uri: String): Intent =
+        Intent().setData(android.net.Uri.parse(uri))
+            .putExtra("position", (if (completed) durationMs else positionMs).coerceIn(0, Int.MAX_VALUE.toLong()).toInt())
+            .putExtra("duration", durationMs.coerceIn(0, Int.MAX_VALUE.toLong()).toInt())
+            .putExtra("end_by", if (completed) "playback_completion" else "user")
+            .putExtra("extra_position", if (completed) durationMs else positionMs)
+            .putExtra("extra_duration", durationMs)
 
     private fun bundleHeaders(b: Bundle): Map<String, String> =
         b.keySet().mapNotNull { k -> b.getString(k)?.let { v -> k to v } }

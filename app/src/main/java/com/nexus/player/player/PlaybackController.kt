@@ -21,6 +21,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.util.Util
 import androidx.media3.exoplayer.DecoderReuseEvaluation
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.SeekParameters
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.audio.AudioSink
 import com.nexus.player.afr.FrameRateMatcher
@@ -34,11 +35,17 @@ import com.nexus.player.intent.StreamRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @UnstableApi
-class PlaybackController(private val activity: Activity, val request: StreamRequest) {
+class PlaybackController(
+    private val activity: Activity,
+    val request: StreamRequest,
+    /** Called once when the item plays to the end. */
+    private val onCompleted: () -> Unit = {},
+) {
     val prefs = Prefs(activity)
     private val dsp = DspEngine().apply { params = prefs.dsp }
     val player: ExoPlayer = PlayerFactory.create(activity, dsp, request.headers)
@@ -61,7 +68,7 @@ class PlaybackController(private val activity: Activity, val request: StreamRequ
         override fun onIsPlayingChanged(isPlaying: Boolean) { if (!isPlaying) save() }
         override fun onPlaybackStateChanged(state: Int) {
             DiagLog.log("player") { "state=$state" }
-            if (state == Player.STATE_ENDED) save(completed = true)
+            if (state == Player.STATE_ENDED) { save(completed = true); onCompleted() }
         }
         override fun onTracksChanged(tracks: Tracks) { if (!tracksRestored && !tracks.isEmpty) restoreTracks(tracks) }
         override fun onPlayerError(e: PlaybackException) {
@@ -89,6 +96,14 @@ class PlaybackController(private val activity: Activity, val request: StreamRequ
         }
     }
 
+    // Periodic progress save so a crash / force-stop / power-off loses at most 10 s.
+    private val autosave = CoroutineScope(SupervisorJob() + Dispatchers.Main).launch {
+        while (true) {
+            delay(AUTOSAVE_MS)
+            if (player.isPlaying) save()
+        }
+    }
+
     fun start() {
         DiagLog.log("intent") { "uri=${request.uri} mime=${request.mimeType} headers=${request.headers.keys}" }
         player.addListener(listener)
@@ -106,8 +121,9 @@ class PlaybackController(private val activity: Activity, val request: StreamRequ
                 s?.speed?.let { speed = it; perItemSpeed = true }
                 player.setPlaybackSpeed(speed)
                 val resume = NexusDb.shouldResume(s)
-                if (resume && prefs.autoResume) player.seekTo(s!!.positionMs)
-                if (resume && !prefs.autoResume) resumePrompt = s
+                if (request.startPositionMs > 0) player.seekTo(request.startPositionMs) // caller's progress wins
+                else if (resume && prefs.autoResume) player.seekTo(s!!.positionMs)
+                else if (resume) resumePrompt = s
                 player.prepare()
                 player.playWhenReady = resumePrompt == null
             }
@@ -142,10 +158,20 @@ class PlaybackController(private val activity: Activity, val request: StreamRequ
         player.volume = if (passthrough) dspParams.volume.coerceAtMost(1f) else 1f
     }
 
-    fun seekBy(direction: Int) {
-        val step = prefs.seekStepSec * 1000L * direction
-        val dur = player.duration.takeIf { it != C.TIME_UNSET } ?: Long.MAX_VALUE
-        player.seekTo((player.currentPosition + step).coerceIn(0L, dur))
+    val stepMs: Long get() = prefs.seekStepSec * 1000L
+
+    val durationMs: Long get() = player.duration.takeIf { it != C.TIME_UNSET } ?: 0L
+
+    fun seekBy(direction: Int) = seekTo(player.currentPosition + stepMs * direction)
+
+    /** Short hops decode exactly; long jumps snap to the nearest keyframe so 4K seeks land instantly. */
+    fun seekTo(targetMs: Long) {
+        val max = durationMs.takeIf { it > 0 } ?: Long.MAX_VALUE
+        val t = targetMs.coerceIn(0L, max)
+        val far = kotlin.math.abs(t - player.currentPosition) >= LONG_JUMP_MS
+        player.setSeekParameters(if (far) SeekParameters.CLOSEST_SYNC else SeekParameters.EXACT)
+        DiagLog.log("seek") { "to=$t far=$far" }
+        player.seekTo(t)
     }
 
     fun setSpeed(s: Float, thisItemOnly: Boolean) {
@@ -218,12 +244,19 @@ class PlaybackController(private val activity: Activity, val request: StreamRequ
         appendLine("error=$error")
     }
 
+    /** Result for the launching app; call before finish(). */
+    fun resultIntent(completed: Boolean): android.content.Intent =
+        com.nexus.player.intent.IntentParser.resultIntent(player.currentPosition, durationMs, completed, request.uri)
+
     fun release() {
+        autosave.cancel()
         save()
         player.release()
     }
 
     companion object {
+        const val LONG_JUMP_MS = 60_000L
+        const val AUTOSAVE_MS = 10_000L
         private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
         fun mimeHint(type: String?): String? = when (type?.lowercase()) {

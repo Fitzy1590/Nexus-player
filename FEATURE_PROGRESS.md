@@ -20,6 +20,15 @@
 | X1 | Diagnostic logging + export | ✅ toggle, redaction, export .txt |
 | X2 | Windows Tauri 2 + libmpv shell | ⬜ todo |
 
+## Iteration 2 (2026-11-26)
+- [x] Touch taps on HUD buttons (tv-material ignores touch — proven by HudTouchTest)
+- [x] Retry clears error; double-tap edge seek + chained taps
+- [x] Buffer: continuous fill, 180 s / 30 s back, heap/2 cap, OkHttp
+- [x] Seeking: coalesced targets, hold-accelerate, focusable/touch scrub bar, sync seeks for ≥60 s jumps
+- [x] Pinch-to-zoom 100–300 %
+- [x] Caller handoff: result on completion/back (MX + VLC extras), caller start position, 10 s autosave
+- [ ] Device-verify Stremio/Nuvio read the result extras
+
 ## Verification (2026-11-26)
 - `./gradlew assembleDebug testDebugUnitTest lintDebug --offline` → BUILD SUCCESSFUL; 18/18 unit tests pass; lint 0 errors.
 - Not verified on device: no emulator (no KVM) in build container. Needs a real Android TV / phone smoke test.
