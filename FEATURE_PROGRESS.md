@@ -10,12 +10,20 @@
 ## Phase 2 — Build
 | # | Pillar | Status |
 |---|---|---|
-| P1 | Dual-core Media3 + libmpv decode, 60 s / 5 s buffer | ⬜ todo |
-| P2 | Dialogue Boost + Bass Preservation DSP | ⬜ todo |
-| P3 | EQ presets + Voice Boost slider | ⬜ todo |
-| P4 | SW volume 0–200 % + D-pad HUD / seek | ⬜ todo |
-| P5 | VIEW intent interceptor + header relay | ⬜ todo |
-| P6 | Room/SQLite resume + track/speed state | ⬜ todo |
-| P7 | AFR + Compose TV HUD | ⬜ todo |
-| X1 | Diagnostic logging + export | ⬜ todo |
+| P1 | Dual-core Media3 + libmpv decode, 60 s / 5 s buffer | 🟡 Media3 core done (60 s fwd / 5 s back, heap-capped bytes, decoder fallback); libmpv deferred |
+| P2 | Dialogue Boost + Bass Preservation DSP | ✅ DspEngine + AudioProcessor; unit-tested |
+| P3 | EQ presets + Voice Boost slider | ✅ 5 presets, Voice Boost 0–12 dB, custom 5-band |
+| P4 | SW volume 0–200 % + D-pad HUD / seek | ✅ 0–200 % + limiter, D-pad HUD, 5/10/15/30 s seek; thumbnails → timecode fallback |
+| P5 | VIEW intent interceptor + header relay | 🟡 VIEW filter + `headers` String[] / Browser.EXTRA_HEADERS; Stremio/Nuvio keys unverified |
+| P6 | Room/SQLite resume + track/speed state | ✅ Room resume, track ids, global/per-item speed |
+| P7 | AFR + Compose TV HUD | ✅ AFR mode switch + Compose TV HUD (tv-material 1.0.0) |
+| X1 | Diagnostic logging + export | ✅ toggle, redaction, export .txt |
 | X2 | Windows Tauri 2 + libmpv shell | ⬜ todo |
+
+## Verification (2026-11-26)
+- `./gradlew assembleDebug testDebugUnitTest lintDebug --offline` → BUILD SUCCESSFUL; 18/18 unit tests pass; lint 0 errors.
+- Not verified on device: no emulator (no KVM) in build container. Needs a real Android TV / phone smoke test.
+
+## Known gaps
+- Inter / JetBrains Mono not bundled (font hosts returned 403); system sans/mono used.
+- libmpv fallback + Windows Tauri shell pending (licensing / embedding risks, SPEC §5).

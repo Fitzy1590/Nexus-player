@@ -9,7 +9,8 @@
 - Read before edit; minimal diffs; never reformat untouched code.
 - No unasked abstractions. Audit existing features before adding modules.
 - Bugs: prove with failing test/repro first. Scratch files only in `temp/` or `.claude/scratch/`.
-- Filter build output: `./gradlew check --offline 2>&1 | head -50`, `cargo check 2>&1 | head -50`.
+- Build: `./gradlew assembleDebug testDebugUnitTest lintDebug --offline 2>&1 | head -50` (SDK: compileSdk 36, AGP 8.13.2, Kotlin 2.2.21).
+- `cargo check 2>&1 | head -50` for Windows shell.
 - Redact `Authorization`, cookies, API keys in any log as `[REDACTED]`.
 
 ## Output

@@ -1,0 +1,12 @@
+.gradle/
+build/
+local.properties
+*.iml
+.idea/
+temp/
+.claude/scratch/
+.claude/settings.local.json
+*.jks
+*.keystore
+*.p12
+.env*
