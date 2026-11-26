@@ -1,0 +1,21 @@
+{
+  "model": "opusplan",
+  "outputStyle": "concise",
+  "env": {
+    "CLAUDE_CODE_SUBAGENT_MODEL": "haiku"
+  },
+  "permissions": {
+    "deny": [
+      "Read(node_modules/**)",
+      "Read(dist/**)",
+      "Read(build/**)",
+      "Read(**/build/**)",
+      "Read(*.lock)",
+      "Read(./.env*)",
+      "Read(**/*.jks)",
+      "Read(**/*.p12)",
+      "Read(**/*.keystore)",
+      "Edit(.github/workflows/**)"
+    ]
+  }
+}

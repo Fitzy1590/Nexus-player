@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nexus Voting Card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B0E14;--panel:rgba(18,24,34,.72);--line:rgba(0,242,254,.16);
+  --text:#E6EDF3;--muted:#8B98A9;--mint:#10B981;--amber:#F59E0B;--cyan:#00F2FE;
+  --ui:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--text);font:14px/1.5 var(--ui);padding:24px 16px 48px}
+.wrap{max-width:1120px;margin:0 auto;display:grid;gap:24px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:16px;border-bottom:1px solid var(--line);padding-bottom:16px}
+h1{font-size:22px;font-weight:700;letter-spacing:-.01em}
+h1 span{color:var(--cyan)}
+.tag{font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.tag b{color:var(--amber)}
+h2{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.glass{background:var(--panel);border:1px solid var(--line);border-radius:8px;backdrop-filter:blur(12px)}
+/* Player mock */
+.player{position:relative;aspect-ratio:16/9;overflow:hidden;border-radius:8px;border:1px solid var(--line);
+  background:linear-gradient(180deg,#0d141d 0%,#0B0E14 100%)}
+.grid-bg{position:absolute;inset:0;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:64px 64px;opacity:.35}
+.stats{position:absolute;top:16px;left:16px;padding:8px 16px;font:12px/1.7 var(--mono);display:grid;grid-template-columns:auto auto;column-gap:16px}
+.stats dt{color:var(--muted)}.stats dd{color:var(--cyan)}
+.badge{position:absolute;top:16px;right:16px;display:flex;gap:8px}
+.pill{font:600 11px var(--mono);padding:4px 8px;border-radius:4px;border:1px solid currentColor}
+.pill.m{color:var(--mint)}.pill.a{color:var(--amber)}.pill.c{color:var(--cyan)}
+.vol{position:absolute;right:24px;top:72px;bottom:96px;width:44px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px 0}
+.vol .track{flex:1;width:6px;border-radius:3px;background:rgba(255,255,255,.08);position:relative}
+.vol .fill{position:absolute;bottom:0;left:0;right:0;height:70%;border-radius:3px;background:var(--mint)}
+.vol .over{position:absolute;bottom:50%;left:0;right:0;height:20%;background:var(--amber);border-radius:3px 3px 0 0}
+.vol .mk{position:absolute;left:-6px;right:-6px;bottom:50%;height:1px;background:var(--text);opacity:.5}
+.vol .v{font:600 12px var(--mono);color:var(--amber)}
+.vol .k{font:10px var(--mono);color:var(--muted)}
+.bar{position:absolute;left:16px;right:16px;bottom:16px;padding:8px 16px;display:grid;gap:8px}
+.tl{position:relative;height:6px;background:rgba(255,255,255,.08);border-radius:3px}
+.tl .buf{position:absolute;left:0;top:0;bottom:0;width:58%;background:rgba(0,242,254,.25);border-radius:3px}
+.tl .pos{position:absolute;left:0;top:0;bottom:0;width:41%;background:var(--cyan);border-radius:3px}
+.thumb{position:absolute;left:calc(41% + 60px);bottom:104px;width:128px;z-index:2;aspect-ratio:16/9;border:2px solid var(--cyan);border-radius:4px;background:#121a24;display:grid;place-items:end center;font:11px var(--mono);color:var(--cyan);padding:4px}
+.ctrls{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.btns{display:flex;gap:8px}
+.btn{min-width:44px;height:44px;padding:0 12px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--text);font:600 12px var(--ui);cursor:pointer}
+.btn.focus{border:3px solid var(--cyan);transform:scale(1.05)}
+.tc{font:600 13px var(--mono)}.tc i{font-style:normal;color:var(--muted)}
+/* DSP */
+.dsp{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}
+.card{padding:16px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.chip{min-height:44px;padding:0 16px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--text);font:500 13px var(--ui);cursor:pointer}
+.chip.on{border-color:var(--mint);color:var(--mint)}
+.eq{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;height:176px;align-items:end}
+.band{display:flex;flex-direction:column;align-items:center;gap:8px;height:100%}
+.band .t{flex:1;width:6px;border-radius:3px;background:rgba(255,255,255,.08);position:relative}
+.band .t::after{content:"";position:absolute;left:-7px;width:20px;height:8px;border-radius:2px;background:var(--cyan);bottom:var(--h)}
+.band .t::before{content:"";position:absolute;left:0;right:0;border-radius:3px;background:rgba(16,185,129,.55);bottom:50%;height:calc(var(--h) - 50%)}
+.band .f{font:11px var(--mono);color:var(--muted)}
+.slider{margin-top:16px;display:grid;gap:8px}
+.slider label{display:flex;justify-content:space-between;font-weight:500}
+.slider label span{font:600 13px var(--mono);color:var(--mint)}
+input[type=range]{width:100%;accent-color:var(--mint);height:44px}
+.chain{display:grid;gap:8px;font:12px var(--mono)}
+.node{display:flex;justify-content:space-between;padding:8px 12px;border-left:3px solid var(--cyan);background:rgba(0,242,254,.04)}
+.node span{color:var(--muted)}
+.node.w{border-color:var(--amber)}
+.warn{margin-top:8px;font-size:12px;color:var(--amber)}
+/* Vote */
+.vote{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.opt{padding:24px;border-radius:8px;border:1px solid var(--line);background:var(--panel);cursor:pointer;text-align:left;color:var(--text);font:inherit;display:grid;gap:12px;align-content:start}
+.opt[aria-pressed=true]{border:3px solid var(--cyan);padding:22px}
+.opt .hd{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.opt h3{font-size:17px}
+.opt ul{padding-left:18px;color:var(--muted);display:grid;gap:4px}
+.opt ul li b{color:var(--text);font-weight:500}
+.rec{font:600 11px var(--mono);color:var(--mint);border:1px solid var(--mint);padding:2px 8px;border-radius:4px}
+.out{font:600 12px var(--mono);color:var(--muted)}
+.out b{color:var(--cyan)}
+@media (max-width:760px){.dsp,.vote{grid-template-columns:1fr}.thumb,.stats{display:none}.vol{top:16px;bottom:120px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="tag">Phase 1 · Visual Voting Card</div>
+      <h1>Nexus <span>Universal 4K</span> Media Player — V2 Build</h1>
+    </div>
+    <div class="tag">Status: <b>Awaiting vote</b></div>
+  </header>
+
+  <section>
+    <h2>Playback HUD — Android TV (D-pad Up held)</h2>
+    <div class="player">
+      <div class="grid-bg"></div>
+      <dl class="stats glass">
+        <dt>ENGINE</dt><dd>Media3 · HW c2.amlogic.hevc</dd>
+        <dt>VIDEO</dt><dd>3840×2160 · HEVC Main10 · 23.976</dd>
+        <dt>BITRATE</dt><dd>62.4 Mbps</dd>
+        <dt>BUFFER</dt><dd>41.2 s / 60 s · back 5 s</dd>
+        <dt>DISPLAY</dt><dd>AFR 60 → 23.976 Hz</dd>
+      </dl>
+      <div class="badge"><span class="pill c">HDR10</span><span class="pill m">DIALOGUE +6 dB</span><span class="pill a">PCM 7.1</span></div>
+      <div class="vol glass">
+        <span class="v">140%</span>
+        <div class="track"><div class="fill"></div><div class="over"></div><div class="mk"></div></div>
+        <span class="k">VOL</span>
+      </div>
+      <div class="thumb">+10 s · 01:12:48</div>
+      <div class="bar glass">
+        <div class="tl"><div class="buf"></div><div class="pos"></div></div>
+        <div class="ctrls">
+          <span class="tc">01:12:38 <i>/ 02:57:04</i></span>
+          <div class="btns">
+            <button class="btn">−10s</button><button class="btn focus">Pause</button><button class="btn">+10s</button>
+            <button class="btn">Audio</button><button class="btn">Subs</button><button class="btn">1.00×</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="dsp">
+    <div class="glass card">
+      <h2>Sound Tweaking &amp; Equalizer</h2>
+      <div class="chips">
+        <button class="chip">Off (Flat)</button><button class="chip on">Dialogue Boost</button>
+        <button class="chip">Vocal Isolation</button><button class="chip">Night Mode</button><button class="chip">Custom 5-Band</button>
+      </div>
+      <div class="eq">
+        <div class="band"><div class="t" style="--h:62%"></div><span class="f">60</span></div>
+        <div class="band"><div class="t" style="--h:50%"></div><span class="f">250</span></div>
+        <div class="band"><div class="t" style="--h:78%"></div><span class="f">1k</span></div>
+        <div class="band"><div class="t" style="--h:74%"></div><span class="f">4k</span></div>
+        <div class="band"><div class="t" style="--h:46%"></div><span class="f">12k</span></div>
+      </div>
+      <div class="slider">
+        <label>Voice Boost <span id="vb">6.0 dB</span></label>
+        <input type="range" min="0" max="12" step="0.5" value="6" oninput="document.getElementById('vb').textContent=(+this.value).toFixed(1)+' dB'">
+      </div>
+    </div>
+    <div class="glass card">
+      <h2>DSP Chain (AudioProcessor)</h2>
+      <div class="chain">
+        <div class="node">Low-shelf bass preserve <span>20–250 Hz</span></div>
+        <div class="node">Dialogue peak EQ <span>1–4 kHz</span></div>
+        <div class="node">DRC compressor <span>Night / Dialogue</span></div>
+        <div class="node">5-band EQ <span>Custom</span></div>
+        <div class="node w">SW gain + limiter <span>0–200 %</span></div>
+      </div>
+      <p class="warn">Bitstream passthrough (TrueHD / DTS-HD to AVR) bypasses DSP — controls lock to PASSTHROUGH.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Cast your vote</h2>
+    <div class="vote">
+      <button class="opt" aria-pressed="false" data-o="A">
+        <div class="hd"><h3>1 · Option A — Full Player Build</h3><span class="rec">RECOMMENDED</span></div>
+        <ul>
+          <li><b>Dual-core decode</b> Media3 + libmpv fallback, 60 s / 5 s buffer</li>
+          <li><b>Dialogue Boost + Bass Preservation</b> DSP chain</li>
+          <li><b>EQ presets</b> + Voice Boost 0–12 dB</li>
+          <li><b>SW volume 0–200 %</b> with D-pad Up/Down HUD, Left/Right seek</li>
+          <li><b>Intent interceptor</b> with header relay</li>
+          <li><b>SQLite resume</b>, tracks, speed 0.5–3.0×</li>
+          <li><b>AFR</b> refresh matching + Compose TV HUD</li>
+        </ul>
+      </button>
+      <button class="opt" aria-pressed="false" data-o="B">
+        <div class="hd"><h3>2 · Option B — Basic Video Player</h3></div>
+        <ul>
+          <li><b>Video view</b> with standard controls</li>
+          <li>No DSP / Dialogue Boost</li>
+          <li>No D-pad volume mapping</li>
+        </ul>
+      </button>
+    </div>
+    <p class="out" style="margin-top:16px">Selection: <b id="sel">none</b> — reply <b>1</b> or <b>2</b> in chat to record it in SPEC.md.</p>
+  </section>
+</div>
+<script>
+document.querySelectorAll('.opt').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.opt').forEach(x=>x.setAttribute('aria-pressed','false'));
+  b.setAttribute('aria-pressed','true');
+  document.getElementById('sel').textContent='Option '+b.dataset.o;
+}));
+</script>
+</body>
+</html>
