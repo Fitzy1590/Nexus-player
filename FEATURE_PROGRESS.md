@@ -5,17 +5,17 @@
 - [x] SPEC.md drafted
 - [x] VOTING_CARD.html + .claude/VOTING_CARD.md generated
 - [x] Governance: CLAUDE.md, .claude/rules/*, .claude/settings.json, agents
-- [ ] **User vote** — Option A [ ] / Option B [ ]  ← PENDING
+- [x] **User vote** — Option A [x] / Option B [ ] (2026-11-26)
 
-## Phase 2 — Build (blocked on vote)
+## Phase 2 — Build
 | # | Pillar | Status |
 |---|---|---|
-| P1 | Dual-core Media3 + libmpv decode, 60 s / 5 s buffer | ⏸ blocked |
-| P2 | Dialogue Boost + Bass Preservation DSP | ⏸ blocked |
-| P3 | EQ presets + Voice Boost slider | ⏸ blocked |
-| P4 | SW volume 0–200 % + D-pad HUD / seek | ⏸ blocked |
-| P5 | VIEW intent interceptor + header relay | ⏸ blocked |
-| P6 | Room/SQLite resume + track/speed state | ⏸ blocked |
-| P7 | AFR + Compose TV HUD | ⏸ blocked |
-| X1 | Diagnostic logging + export | ⏸ blocked |
-| X2 | Windows Tauri 2 + libmpv shell | ⏸ blocked |
+| P1 | Dual-core Media3 + libmpv decode, 60 s / 5 s buffer | ⬜ todo |
+| P2 | Dialogue Boost + Bass Preservation DSP | ⬜ todo |
+| P3 | EQ presets + Voice Boost slider | ⬜ todo |
+| P4 | SW volume 0–200 % + D-pad HUD / seek | ⬜ todo |
+| P5 | VIEW intent interceptor + header relay | ⬜ todo |
+| P6 | Room/SQLite resume + track/speed state | ⬜ todo |
+| P7 | AFR + Compose TV HUD | ⬜ todo |
+| X1 | Diagnostic logging + export | ⬜ todo |
+| X2 | Windows Tauri 2 + libmpv shell | ⬜ todo |

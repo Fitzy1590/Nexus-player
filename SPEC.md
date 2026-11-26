@@ -7,10 +7,10 @@
 - De-dup result: zero existing implementations → no feature collisions; every pillar is net-new. [ESTABLISHED]
 
 ## 1. Vote
-- [ ] **Option A [RECOMMENDED]** — Full 7-pillar build (dual-core decode + DSP + EQ/Voice Boost + SW volume/D-pad HUD + intent header relay + SQLite resume + AFR + Compose TV HUD).
+- [x] **Option A [RECOMMENDED]** — Full 7-pillar build (dual-core decode + DSP + EQ/Voice Boost + SW volume/D-pad HUD + intent header relay + SQLite resume + AFR + Compose TV HUD).
 - [ ] **Option B** — Basic video player view only (no DSP, no D-pad volume mapping).
 
-Status: **PENDING USER VOTE.** No application code until vote is recorded.
+Status: **VOTED — Option A (2026-11-26).** Phase 2 unlocked.
 
 ## 2. Targets & Stack
 | Target | Stack |
