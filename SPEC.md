@@ -90,3 +90,27 @@ Status: **VOTED — Option A (2026-11-26).** Phase 2 unlocked.
 - Sub-decisions: [x] rename applicationId → `com.fitzy.nexusplayer` (breaks in-place update / Room data of installed builds) · [x] include Violet `#7C3AED` secondary accent (selected tracks / active presets) · [x] keep current 5/10/15/30 s seek setting.
 
 Status: **VOTED — Option A (2026-11-27).** Phase 3 build unlocked.
+
+## 7. Performance Engine Update — Dual-Engine, Memory Governor, Fast Seek (Phase 1 audit, 2026-11-27)
+
+### 7.1 Audit vs request (`app/src/main/java/com/nexus/player/`)
+- Already built: Media3 + `DefaultLoadControl` (user buffer 3/10/20/30 min, default 10; 30 s back; byte cap heap/2 ≤ 768 MB); `SeekAccumulator` + `CLOSEST_SYNC` ≥15 s, 80 ms settle; `DspEngine` (Voice Boost 0–12 dB, 5-band EQ, DRC, 0–200 % limiter, passthrough/tunneled bypass); AFR via `preferredDisplayModeId`; `PlayerView` (SurfaceView default → MediaCodec→Surface is already zero-copy); Cinema Glass HUD. [ESTABLISHED: PlayerFactory.kt, PlaybackController.kt]
+- Missing: libmpv/NDK/JNI (no `cpp/`), `DualPlaybackEngine`, `onTrimMemory`/`getMemoryInfo` use, in-RAM cue index, sprite-sheet trick-play, Vulkan tone-mapping. [ESTABLISHED: grep]
+- Request paths `src/media/…` do not exist → use `com.nexus.player.media.*`. `ui-hud.md` request = existing `tv-ui.md` (no duplicate). `audio-dsp.md` already exists (unchanged).
+
+### 7.2 Conflicts / constraints
+- Buffer: request 60–120 s fwd, 100–500 MB, 15 s back vs current user-set 10 min, ≤768 MB, 30 s back. Proposal: governor sizes bytes (100–500 MB), time ceiling stays the user setting (add 1/2 min presets), back-buffer 15 s. [PLAUSIBLE]
+- Exo has no "demuxer packet ring buffer"; its `SampleQueue`/`Allocator` is the equivalent. mpv exposes `demuxer-max-bytes`/`demuxer-max-back-bytes`. [ESTABLISHED]
+- "<30 ms" seek: network-independent only for in-buffer targets; untested. [UNCERTAIN]
+- libmpv on Android via Vulkan (`gpu-next`) and Dolby Vision P5/P7/P8 mapping: build/driver dependent. [UNCERTAIN — verify before acting]
+- libmpv licence (LGPL vs GPL) and NDK build cost: SPEC §5 risk 1 still open. [UNCERTAIN]
+- Dolby Atmos/DTS-HD passthrough already follows `audio-dsp.md`; 32-bit float = `setEnableFloatOutput` (device dependent). [PLAUSIBLE]
+
+### 7.3 Scope of build if approved
+Governor + trim hook + 15 s back-buffer; cue-index cache + sprite trick-play; `DualPlaybackEngine` + libmpv JNI (staged, behind licence gate); gesture/engine-toggle HUD additions.
+
+### 7.4 Vote
+- [ ] **Option A [RECOMMENDED] — Dual-engine suite**: Exo + libmpv Vulkan fallback + memory governor (100–500 MB, 15 s back, trim hook) + fast seek/cue cache/sprites + AFR + speech DSP + Obsidian HUD.
+- [ ] **Option B** — Standard Exo only (no libmpv, no new DSP); governor + seek work limited to Exo.
+
+Status: **AWAITING VOTE.** No app code until one box is `[x]`.

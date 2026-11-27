@@ -2,6 +2,7 @@
 <!-- Keep < 200 lines. Domain rules live in .claude/rules/. -->
 
 - Source of truth: `SPEC.md`. Progress: `FEATURE_PROGRESS.md`.
+- Engine update rules: `.claude/rules/media-engine.md` (vote SPEC.md §7.4).
 - Phase gate: no app code until the vote in SPEC.md §1 is `[x]`.
 - Domain rules: `.claude/rules/player-core.md`, `audio-dsp.md`, `tv-ui.md`.
 

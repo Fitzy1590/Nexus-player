@@ -1,290 +1,103 @@
-<title>Nexus Cinema Glass Vote</title>
+<title>Nexus Engine Vote</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* Layout: one column of three full-width player mocks, each a votable card, then sub-decisions + copy-vote bar. Single dark look by design. */
+/* Layout: header + audit grid, two votable option cards, constraint list, copy-vote bar. Single committed dark look (project tokens). */
 :root{
   color-scheme:dark;
-  --bg:#0B0E14; --surface:#111722; --line:rgba(255,255,255,.12); --text:#E6EDF3; --muted:rgba(255,255,255,.6);
+  --bg:#0B0E14; --surface:#111722; --line:rgba(255,255,255,.12); --text:#E6EDF3; --muted:#9AA7B5;
   --cyan:#00F2FE; --violet:#7C3AED; --mint:#10B981; --amber:#F59E0B;
-  --glass:rgba(11,14,20,.75);
   --display:'Outfit','Inter',system-ui,sans-serif; --ui:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 var(--ui);
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 var(--ui);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 120px}
-.wrap{max-width:1080px;margin:0 auto;display:grid;gap:32px}
-header{display:grid;gap:8px;border-bottom:1px solid var(--line);padding-bottom:24px}
+.wrap{max-width:1000px;margin:0 auto;display:grid;gap:32px}
 .eyebrow{font:600 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-h1{font:700 clamp(24px,4vw,34px)/1.1 var(--display);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1{font:700 clamp(24px,4vw,34px)/1.1 var(--display);margin:8px 0;text-wrap:balance}
 h1 em{font-style:normal;color:var(--cyan)}
-.lede{color:var(--muted);max-width:68ch;margin:0}
-.audit{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:8px}
-.audit div{font:12px/1.5 var(--mono);color:var(--muted);border-left:2px solid var(--line);padding:4px 0 4px 12px}
-.audit b{color:var(--text);font-weight:600}
-.audit .warn{border-color:var(--amber)}
-
-/* Option card */
-.opt{display:grid;gap:16px;border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--surface);cursor:pointer}
+h2{font:600 18px var(--display);margin:0}
+h3{font:600 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+p{margin:0;color:var(--muted);max-width:70ch}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.col{min-width:0;border-left:2px solid var(--line);padding-left:16px}
+.col.gap{border-color:var(--amber)} .col.ok{border-color:var(--mint)}
+ul{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+li{font:12px/1.5 var(--mono);color:var(--muted)} li b{color:var(--text);font-weight:600}
+.opt{display:grid;gap:16px;border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--surface);cursor:pointer;min-width:0}
 .opt:has(input:checked){border-color:var(--cyan);box-shadow:inset 0 0 0 1px var(--cyan)}
-.opt-head{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
-.opt-head label{display:flex;gap:12px;align-items:center;cursor:pointer;min-height:44px}
-.opt input[type=radio]{width:22px;height:22px;accent-color:var(--cyan);margin:0}
-.opt h2{font:600 18px var(--display);margin:0}
+.head{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.head label{display:flex;gap:12px;align-items:center;cursor:pointer;min-height:44px}
+input[type=radio]{width:22px;height:22px;accent-color:var(--cyan);margin:0}
 .rec{font:600 10px var(--mono);letter-spacing:.08em;color:var(--bg);background:var(--cyan);padding:3px 8px;border-radius:4px}
-.opt p{margin:0;color:var(--muted);max-width:75ch}
-.swatches{display:flex;gap:8px;flex-wrap:wrap}
-.sw{display:flex;align-items:center;gap:6px;font:11px var(--mono);color:var(--muted)}
-.sw i{width:16px;height:16px;border-radius:4px;border:1px solid var(--line);display:block}
-
-/* Shared player frame: a letterboxed dusk still drawn in CSS */
-.player{position:relative;width:100%;max-width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;
-  background:
-    linear-gradient(180deg,#000 0 7%,transparent 7% 93%,#000 93%),
-    radial-gradient(120% 60% at 70% 78%,rgba(196,110,52,.55),transparent 60%),
-    linear-gradient(180deg,#0d1a2b 10%,#1c2a3d 52%,#3a2c2a 66%,#0c0f14 67%,#07090d 100%);
-  font-size:clamp(8px,1.25vw,13px)}
-.player::after{content:"";position:absolute;left:0;right:0;top:66.5%;height:1px;background:rgba(255,190,140,.25)}
-.player *{position:absolute}
-.player .row,.player .row *{position:static}
-
-/* ---- A: Cinema Glass ---- */
-.A .glass{background:var(--glass);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:10px}
-.A .badges{top:10%;left:2.5%;display:flex;gap:.6em}
-.A .badge{position:static;font:600 1em var(--mono);padding:.35em .7em;border-radius:6px}
-.A .b-res{color:#fff}.A .b-fps{color:var(--mint)}.A .b-br{color:var(--amber)}
-.A .bar{left:2.5%;right:2.5%;bottom:9.5%;padding:1.2em 1.4em;display:grid;gap:.9em}
-.A .scrub{position:relative;height:.45em;border-radius:1em;background:rgba(255,255,255,.14)}
-.A .scrub .buf{left:0;top:0;bottom:0;width:58%;background:rgba(0,242,254,.28);border-radius:1em}
-.A .scrub .pos{left:0;top:0;bottom:0;width:41%;background:var(--cyan);border-radius:1em}
-.A .scrub .knob{left:41%;top:50%;width:1.1em;height:1.1em;margin:-.55em 0 0 -.55em;border-radius:50%;background:#fff}
-.A .thumb{left:41%;bottom:1.6em;transform:translateX(-50%);width:9em;aspect-ratio:16/9;border-radius:6px;border:2px solid var(--cyan);
-  background:linear-gradient(180deg,#0d1a2b,#3a2c2a 70%,#0c0f14 71%)}
-.A .thumb span{left:0;right:0;bottom:-1.7em;text-align:center;font:600 .95em var(--mono);color:#fff}
-.A .row{display:flex;align-items:center;gap:.6em}
-.A .tc{font:600 1.15em var(--mono);color:#fff;font-variant-numeric:tabular-nums}
-.A .tc small{color:var(--muted);font-weight:400}
-.A .sp{flex:1}
-.A .btn{display:inline-flex;align-items:center;gap:.45em;height:3.4em;min-width:3.4em;padding:0 .9em;border-radius:8px;border:1px solid rgba(255,255,255,.12);color:#fff;font:500 1em var(--ui);justify-content:center}
-.A .btn svg{width:1.4em;height:1.4em}
-.A .btn.focus{border:3px solid var(--cyan);transform:scale(1.05);color:var(--cyan);background:rgba(0,242,254,.1)}
-.A .btn.on{color:var(--mint);border-color:rgba(16,185,129,.5)}
-.A .chip{font:600 1em var(--mono);color:var(--cyan)}
-.A .drawer{top:7%;right:2.5%;bottom:36%;width:31%;padding:1.2em;display:grid;gap:.8em;align-content:start}
-.A .drawer *{position:static}
-.A .dh{font:600 1.1em var(--display);display:flex;justify-content:space-between}
-.A .dh span{font:600 .85em var(--mono);color:var(--mint)}
-.A .lbl{font:600 .8em var(--mono);letter-spacing:.08em;color:var(--muted);text-transform:uppercase;display:flex;justify-content:space-between}
-.A .lbl b{color:var(--mint)}
-.A .slider{height:.45em;border-radius:1em;background:rgba(255,255,255,.14);position:relative!important}
-.A .slider i{position:absolute!important;left:0;top:0;bottom:0;width:50%;background:var(--mint);border-radius:1em}
-.A .toggle{display:flex;justify-content:space-between;align-items:center;font-size:1em}
-.A .sw2{width:2.6em;height:1.4em;border-radius:1em;background:var(--mint);position:relative!important}
-.A .sw2::after{content:"";position:absolute;right:.2em;top:.2em;width:1em;height:1em;border-radius:50%;background:#fff}
-.A .eq{display:grid;grid-template-columns:repeat(5,1fr);gap:.5em;height:5em;align-items:end}
-.A .eq i{display:block;background:linear-gradient(180deg,var(--cyan),rgba(0,242,254,.25));border-radius:3px}
-.A .eqf{display:grid;grid-template-columns:repeat(5,1fr);gap:.5em;font:.75em var(--mono);color:var(--muted);text-align:center}
-.A .vol{right:36%;top:20%;bottom:40%;width:3.6em;padding:.8em 0;display:flex;flex-direction:column;align-items:center;gap:.5em}
-.A .vol *{position:static}
-.A .vol .v{font:600 .95em var(--mono);color:var(--amber)}
-.A .vol .t{flex:1;width:.45em;border-radius:1em;background:rgba(255,255,255,.14);position:relative!important;overflow:hidden}
-.A .vol .t i{position:absolute!important;left:0;right:0;bottom:0;height:70%;background:linear-gradient(0deg,var(--mint) 0 71%,var(--amber) 71%)}
-.A .vol .k{font:.75em var(--mono);color:var(--muted)}
-.A .seekchip{left:50%;top:32%;transform:translateX(-50%);padding:.6em 1.2em;font:600 1.3em var(--mono);color:var(--cyan)}
-
-/* ---- B: Material 3 tonal ---- */
-.B{--t1:#1D2430;--t2:#2A3342;--on:#D8E2FF;--pri:#A8C7FA}
-.B .sheet{left:2.5%;right:2.5%;bottom:6%;padding:1.2em 1.6em;border-radius:28px;background:rgba(29,36,48,.92);display:grid;gap:.9em}
-.B .scrub{position:relative;height:.35em;border-radius:1em;background:var(--t2)}
-.B .scrub i{left:0;top:0;bottom:0;width:41%;background:var(--pri);border-radius:1em}
-.B .row{display:flex;align-items:center;gap:.6em}
-.B .tc{font:500 1.1em var(--ui);color:var(--on);font-variant-numeric:tabular-nums}
-.B .sp{flex:1}
-.B .fab{width:4.2em;height:4.2em;border-radius:16px;background:var(--pri);color:#062E6F;display:grid;place-items:center}
-.B .fab svg{width:1.8em;height:1.8em}
-.B .tonal{height:3.2em;padding:0 1.2em;border-radius:2em;background:var(--t2);color:var(--on);display:inline-flex;align-items:center;font:500 1em var(--ui)}
-.B .tonal.focus{outline:3px solid var(--cyan);outline-offset:2px}
-.B .card{top:10%;right:2.5%;width:30%;padding:1.2em;border-radius:20px;background:rgba(29,36,48,.92);display:grid;gap:.6em;color:var(--on)}
-.B .card *{position:static}
-.B .card h4{margin:0;font:500 1.1em var(--ui)}
-.B .item{display:flex;justify-content:space-between;padding:.6em .9em;border-radius:12px;background:var(--t2);font-size:.95em}
-.B .item.sel{background:#3B4A6B;color:#fff}
-
-/* ---- C: Monochrome ---- */
-.C .player{background:
-    linear-gradient(180deg,#000 0 7%,transparent 7% 93%,#000 93%),
-    linear-gradient(180deg,#151515 10%,#2a2a2a 55%,#3c3c3c 66%,#0a0a0a 67%,#000 100%)}
-.C .player::after{background:rgba(255,255,255,.18)}
-.C .bar{left:0;right:0;bottom:7%;padding:1.2em 2.5%;background:rgba(0,0,0,.82);border-top:1px solid #fff;display:grid;gap:.9em}
-.C .scrub{position:relative;height:2px;background:rgba(255,255,255,.3)}
-.C .scrub i{left:0;top:-1px;height:4px;width:41%;background:#fff}
-.C .row{display:flex;align-items:center;gap:.6em}
-.C .tc{font:600 2em var(--mono);color:#fff;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.C .tc small{font-size:.55em;color:rgba(255,255,255,.55)}
-.C .sp{flex:1}
-.C .ob{height:3.2em;padding:0 1em;border:1px solid #fff;color:#fff;display:inline-flex;align-items:center;font:500 .95em var(--mono);text-transform:uppercase;letter-spacing:.06em}
-.C .ob.focus{background:#fff;color:#000}
-.C .meta{top:10%;right:2.5%;font:600 1em var(--mono);color:#fff;text-align:right;line-height:1.8}
-
-.note{font-size:12px;color:var(--muted)}
-.note b{color:var(--amber);font-weight:600}
-
-/* Sub-decisions */
-.subs{display:grid;gap:12px;border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--surface)}
-.subs h2{font:600 16px var(--display);margin:0}
-.q{display:grid;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
-.q:first-of-type{border-top:0}
-.q > span{font-weight:500}
-.q small{color:var(--muted)}
-.choices{display:flex;flex-wrap:wrap;gap:8px}
-.choices label{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border:1px solid var(--line);border-radius:8px;cursor:pointer}
-.choices label:has(input:checked){border-color:var(--cyan);color:var(--cyan)}
-.choices input{accent-color:var(--cyan);margin:0}
-textarea{width:100%;min-height:72px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:12px;font:13px var(--ui);resize:vertical}
-textarea:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
-
-/* Vote bar */
-.votebar{position:fixed;left:0;right:0;bottom:0;background:rgba(11,14,20,.94);border-top:1px solid var(--line);backdrop-filter:blur(12px);
-  padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
-.votebar .in{max-width:1080px;margin:0 auto;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-#out{flex:1;min-width:0;font:12px var(--mono);color:var(--muted);overflow-wrap:anywhere}
-#out b{color:var(--text)}
-button{min-height:44px;padding:0 20px;border-radius:8px;border:0;background:var(--cyan);color:#06121A;font:600 14px var(--ui);cursor:pointer}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
-@media (max-width:640px){.A .drawer{width:40%}.A .vol{right:45%}.B .card{width:42%}}
+.stack{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:600 12px var(--mono);padding:6px 10px;border-radius:6px;border:1px solid var(--line)}
+.chip.c{color:var(--cyan)} .chip.m{color:var(--mint)} .chip.a{color:var(--amber)} .chip.v{color:#B79CFA;border-color:var(--violet)} .chip.x{color:var(--muted);text-decoration:line-through}
+.buf{display:grid;gap:6px}
+.track{position:relative;height:10px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden}
+.track i{position:absolute;top:0;bottom:0;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:16px;font:11px var(--mono);color:var(--muted)}
+.tag{font:600 10px var(--mono);padding:1px 6px;border-radius:4px;border:1px solid var(--line);margin-right:6px;white-space:nowrap}
+.est{color:var(--mint)} .unc{color:var(--amber)}
+.bar{position:fixed;left:0;right:0;bottom:0;padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:rgba(11,14,20,.92);border-top:1px solid var(--line);display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap}
+.bar code{font:12px var(--mono);color:var(--text)}
+button{min-height:44px;padding:0 16px;font:600 13px var(--ui);color:var(--bg);background:var(--cyan);border:0;border-radius:8px;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
 </style>
-
 <div class="wrap">
-  <header>
-    <div class="eyebrow">com.nexus.player · Phase 3 UI/UX vote · 2026-11-27</div>
-    <h1>Nexus Player <em>Cinema Glass</em> redesign</h1>
-    <p class="lede">Pick one HUD direction for Android Mobile, Android TV and the Windows build. Each mock shows the same frame at 01:12:44 into a 4K HDR10+ film, with the controls in their busiest state.</p>
-    <div class="audit">
-      <div><b>Tokens exist.</b> Obsidian, Cyan, Mint, Amber already live in <code>Hud.kt</code>.</div>
-      <div><b>Already 0 ms.</b> Overlays toggle with plain <code>if</code>; no animations.</div>
-      <div><b>Text-only buttons.</b> 10 labelled buttons in one row; no icons.</div>
-      <div class="warn"><b>No real blur on Android.</b> Compose cannot blur a SurfaceView video behind the HUD; glass is a tinted panel there.</div>
-      <div class="warn"><b>Fonts not bundled.</b> System sans and mono stand in for now.</div>
-      <div class="warn"><b>Windows shell not built.</b> Desktop is a new build, not a reskin.</div>
-    </div>
-  </header>
+<header>
+  <div class="eyebrow">Nexus Video Player · Phase 1 · 2026-11-27</div>
+  <h1>Performance engine: <em>dual-engine, governor, fast seek</em></h1>
+  <p>Audit of the repo against the request. Pick one option; the vote is recorded in SPEC.md §7.4 and FEATURE_PROGRESS.md.</p>
+</header>
 
-  <!-- Option A -->
-  <section class="opt" data-opt="1">
-    <div class="opt-head">
-      <label><input type="radio" name="opt" id="opt-a" value="1" checked><h2>1 · Material Cinema Glass HUD</h2></label>
-      <span class="rec">RECOMMENDED</span>
-    </div>
-    <div class="A"><div class="player">
-      <div class="badges"><span class="badge glass b-res">4K HDR10+</span><span class="badge glass b-fps">23.976 fps</span><span class="badge glass b-br">42.6 Mbps</span></div>
-      <div class="glass seekchip">+30s ▸ 01:13:14</div>
-      <div class="glass vol"><span class="v">140%</span><span class="t"><i></i></span><span class="k">VOL</span></div>
-      <div class="glass drawer">
-        <div class="dh">Sound <span>DIALOGUE</span></div>
-        <div class="lbl">Voice Boost <b>+6.0 dB</b></div>
-        <div class="slider"><i></i></div>
-        <div class="toggle">Night mode (DRC)<span class="sw2"></span></div>
-        <div class="lbl">5-band EQ</div>
-        <div class="eq"><i style="height:45%"></i><i style="height:40%"></i><i style="height:70%"></i><i style="height:85%"></i><i style="height:50%"></i></div>
-        <div class="eqf"><span>60</span><span>250</span><span>1k</span><span>4k</span><span>12k</span></div>
-      </div>
-      <div class="glass bar">
-        <div class="scrub"><i class="buf"></i><i class="pos"></i><i class="knob"></i><div class="thumb"><span>01:12:44</span></div></div>
-        <div class="row">
-          <span class="tc">01:12:44 <small>/ 02:18:05</small></span><span class="sp"></span>
-          <span class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg></span>
-          <span class="btn focus"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></span>
-          <span class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg></span>
-          <span class="sp"></span>
-          <span class="btn on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg>Sound</span>
-          <span class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V6l10-2v12"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></svg>EN 7.1</span>
-          <span class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 12h4M13 12h4M7 15h10"/></svg>CC</span>
-          <span class="btn chip">1.25×</span>
-        </div>
-      </div>
-    </div></div>
-    <div class="swatches">
-      <span class="sw"><i style="background:#0B0E14"></i>#0B0E14</span><span class="sw"><i style="background:rgba(11,14,20,.75)"></i>glass 75%</span>
-      <span class="sw"><i style="background:#00F2FE"></i>#00F2FE</span><span class="sw"><i style="background:#10B981"></i>#10B981</span>
-      <span class="sw"><i style="background:#F59E0B"></i>#F59E0B</span><span class="sw"><i style="background:#7C3AED"></i>#7C3AED (optional)</span>
-    </div>
-    <p>Icon-and-label transport bar with scrub thumbnail, Sound drawer on the right edge, a vertical 0–200 % volume bar that turns amber above 100 %, and seek chips at the centre. Focused element shown on Pause: 1.05× scale with a 3 dp cyan border. This builds on the tokens that are already in the code, so it is the smallest change.</p>
-    <p class="note"><b>Caveat:</b> the blur shown here works on Windows (WebView2). On Android the panels use the same 75 % tint without blur.</p>
-  </section>
+<section class="cols" aria-label="Audit">
+  <div class="col ok"><h3>Already built</h3><ul>
+    <li><b>Media3</b> + DefaultLoadControl: 10 min default (3/10/20/30), 30 s back, ≤768 MB</li>
+    <li><b>Seek</b>: SeekAccumulator, CLOSEST_SYNC ≥15 s, 80 ms settle</li>
+    <li><b>DSP</b>: Voice Boost 0–12 dB, 5-band EQ, DRC, 0–200 % limiter</li>
+    <li><b>AFR</b> + SurfaceView (MediaCodec→Surface, zero-copy)</li>
+    <li><b>HUD</b>: Cinema Glass, 44 dp, 0 ms snap</li>
+  </ul></div>
+  <div class="col gap"><h3>Missing</h3><ul>
+    <li><b>libmpv</b>: no NDK / JNI / cpp</li>
+    <li><b>DualPlaybackEngine</b> routing</li>
+    <li><b>Governor</b>: no getMemoryInfo, no onTrimMemory</li>
+    <li><b>Cue index</b> cache, sprite-sheet trick-play</li>
+    <li><b>Vulkan</b> HDR / Dolby Vision tone-mapping</li>
+  </ul></div>
+</section>
 
-  <!-- Option B -->
-  <section class="opt" data-opt="2">
-    <div class="opt-head"><label><input type="radio" name="opt" id="opt-b" value="2"><h2>2 · Material 3 Adaptive Media Surfaces</h2></label></div>
-    <div class="B"><div class="player">
-      <div class="card"><h4>Audio track</h4>
-        <div class="item sel"><span>English · TrueHD 7.1</span><span>✓</span></div>
-        <div class="item"><span>English · AC-3 5.1</span></div>
-        <div class="item"><span>Commentary · AAC 2.0</span></div>
-      </div>
-      <div class="sheet">
-        <div class="scrub"><i></i></div>
-        <div class="row"><span class="tc">1:12:44 / 2:18:05</span><span class="sp"></span>
-          <span class="tonal">−10</span>
-          <span class="fab"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></span>
-          <span class="tonal">+10</span><span class="sp"></span>
-          <span class="tonal focus">Audio</span><span class="tonal">Subtitles</span><span class="tonal">1.25×</span>
-        </div>
-      </div>
-    </div></div>
-    <div class="swatches">
-      <span class="sw"><i style="background:#1D2430"></i>tonal 1</span><span class="sw"><i style="background:#2A3342"></i>tonal 2</span>
-      <span class="sw"><i style="background:#A8C7FA"></i>primary</span><span class="sw"><i style="background:#00F2FE"></i>TV focus</span>
-    </div>
-    <p>Rounded tonal sheets, a large primary play button and standard M3 cards for track menus. It looks familiar and follows Android conventions, but it moves away from the existing token set and uses more of the frame.</p>
-  </section>
-
-  <!-- Option C -->
-  <section class="opt" data-opt="3">
-    <div class="opt-head"><label><input type="radio" name="opt" id="opt-c" value="3"><h2>3 · Minimalist Monochrome HUD</h2></label></div>
-    <div class="C"><div class="player">
-      <div class="meta">2160p · HDR10+<br>23.976 · 42.6 Mb/s</div>
-      <div class="bar">
-        <div class="scrub"><i></i></div>
-        <div class="row"><span class="tc">01:12:44 <small>/ 02:18:05</small></span><span class="sp"></span>
-          <span class="ob">−10s</span><span class="ob focus">Pause</span><span class="ob">+10s</span><span class="ob">Sound</span><span class="ob">Audio</span><span class="ob">Subs</span>
-        </div>
-      </div>
-    </div></div>
-    <div class="swatches"><span class="sw"><i style="background:#000"></i>#000000</span><span class="sw"><i style="background:#fff"></i>#FFFFFF</span><span class="sw"><i style="background:rgba(255,255,255,.55)"></i>55 % white</span></div>
-    <p>Black glass with sharp white outlines and a large monospace timecode. The focused element inverts to white. It has the least visual noise, but colour no longer separates states such as boost on, volume over 100 % or passthrough.</p>
-  </section>
-
-  <section class="subs">
-    <h2>Sub-decisions</h2>
-    <div class="q"><span>Rename the app ID to <code>com.fitzy.nexusplayer</code>?</span><small>Installed builds will not update in place, and their saved resume positions stay with the old app.</small>
-      <div class="choices"><label><input type="radio" name="pkg" id="pkg-keep" value="keep com.nexus.player" checked>Keep com.nexus.player</label><label><input type="radio" name="pkg" id="pkg-rename" value="rename to com.fitzy.nexusplayer">Rename</label></div></div>
-    <div class="q"><span>Add violet <code>#7C3AED</code> as a secondary accent?</span><small>A solid accent, never a gradient. It would mark selected tracks and active presets.</small>
-      <div class="choices"><label><input type="radio" name="vio" id="vio-no" value="no violet" checked>No, cyan only</label><label><input type="radio" name="vio" id="vio-yes" value="add violet">Add violet</label></div></div>
-    <div class="q"><span>D-pad seek steps</span><small>Current build: one user setting, 5/10/15/30 s.</small>
-      <div class="choices"><label><input type="radio" name="seek" id="seek-fixed" value="fixed −10/+10, hold +30" checked>−10 / +10, hold for +30</label><label><input type="radio" name="seek" id="seek-keep" value="keep 5/10/15/30 setting">Keep setting</label></div></div>
-    <div class="q"><label for="tweak"><span>Custom tweak (optional)</span></label><textarea id="tweak" placeholder="e.g. Option 1, but move the Sound drawer to the left edge"></textarea></div>
-  </section>
+<div class="opt">
+  <div class="head"><label><input type="radio" name="v" value="1" checked> <h2>1️⃣ Option A: Dual-engine suite</h2></label><span class="rec">RECOMMENDED</span></div>
+  <div class="stack">
+    <span class="chip c">ExoPlayer Media3</span><span class="chip c">libmpv Vulkan fallback</span><span class="chip m">60–120 s forward · 100–500 MB</span><span class="chip m">15 s back-buffer</span>
+    <span class="chip c">Zero-copy Surface</span><span class="chip c">AFR</span><span class="chip v">Speech DSP 1–4 kHz</span><span class="chip a">onTrimMemory → 15 s</span>
+  </div>
+  <div class="buf" aria-label="Buffer layout">
+    <div class="track"><i style="left:0;width:11%;background:var(--amber)"></i><i style="left:11%;width:3%;background:var(--cyan)"></i><i style="left:14%;width:72%;background:var(--mint)"></i></div>
+    <div class="legend"><span style="color:var(--amber)">■ 15 s back (RAM, 0 HTTP)</span><span style="color:var(--cyan)">■ playhead</span><span style="color:var(--mint)">■ 60–120 s forward (governor-sized)</span></div>
+  </div>
+  <p>Instant in-buffer seeking, stable buffering, OOM-safe under pressure.</p>
 </div>
 
-<div class="votebar"><div class="in"><div id="out"></div><button id="copy" type="button">Copy vote</button></div></div>
+<div class="opt">
+  <div class="head"><label><input type="radio" name="v" value="2"> <h2>2️⃣ Option B: Standard Exo only</h2></label></div>
+  <div class="stack"><span class="chip c">ExoPlayer Media3</span><span class="chip m">Governor + 15 s back (Exo)</span><span class="chip x">libmpv</span><span class="chip x">New speech DSP</span></div>
+  <p>Smallest change; no NDK or licence work. AV1 10-bit / VC-1 / DTS-HD MA stay device-dependent.</p>
+</div>
 
+<section aria-label="Constraints"><h3>Audit constraints</h3><ul>
+  <li><span class="tag est">ESTABLISHED</span>Request buffers (60–120 s, 100–500 MB, 15 s back) differ from shipped (10 min, ≤768 MB, 30 s). A: governor sizes bytes, time ceiling stays your setting, back = 15 s.</li>
+  <li><span class="tag est">ESTABLISHED</span>Exo has no "demuxer ring buffer"; SampleQueue/Allocator is the equivalent. mpv uses demuxer-max-bytes / demuxer-max-back-bytes.</li>
+  <li><span class="tag unc">UNCERTAIN</span>"&lt;30 ms" seek is only plausible inside the buffer; to be measured. Verify before acting.</li>
+  <li><span class="tag unc">UNCERTAIN</span>libmpv Vulkan on Android and Dolby Vision P5/P7/P8 mapping depend on build and driver.</li>
+  <li><span class="tag unc">UNCERTAIN</span>libmpv licence (LGPL vs GPL) still open (SPEC §5).</li>
+</ul></section>
+</div>
+<div class="bar"><code id="msg">Reply: 1 (Option A)</code><button id="copy" type="button">Copy vote</button></div>
 <script>
-const $=s=>document.querySelector(s);
-function vote(){
-  const v=n=>document.querySelector(`input[name=${n}]:checked`).value;
-  const t=$('#tweak').value.trim();
-  return `${v('opt')} · ${v('pkg')} · ${v('vio')} · seek ${v('seek')}${t?` · tweak: ${t}`:''}`;
-}
-function render(){$('#out').innerHTML='<b>Your vote:</b> '+vote().replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}
-document.querySelectorAll('.opt').forEach(o=>o.addEventListener('click',e=>{if(e.target.tagName!=='INPUT')o.querySelector('input').checked=true;render()}));
-document.addEventListener('input',render);
-$('#copy').addEventListener('click',()=>{
-  const txt=vote();
-  navigator.clipboard.writeText(txt).then(()=>{$('#copy').textContent='Copied'},()=>{
-    const r=document.createRange();r.selectNodeContents($('#out'));const s=getSelection();s.removeAllRanges();s.addRange(r);$('#copy').textContent='Selected, press Ctrl+C';
-  });
-  setTimeout(()=>$('#copy').textContent='Copy vote',2000);
-});
-render();
+var m=document.getElementById('msg');document.querySelectorAll('.opt').forEach(function(o){o.addEventListener('click',function(e){var r=o.querySelector('input');if(e.target!==r){r.checked=true;r.dispatchEvent(new Event('change'))}})});
+document.querySelectorAll('input[name=v]').forEach(function(r){r.addEventListener('change',function(){m.textContent='Reply: '+r.value+(r.value==='1'?' (Option A)':' (Option B)')})});
+document.getElementById('copy').addEventListener('click',function(){var t=m.textContent.replace('Reply: ','').split(' ')[0];try{navigator.clipboard.writeText(t).catch(function(){})}catch(e){}});
 </script>

@@ -62,3 +62,9 @@
 - [x] Buffer ahead setting 3 / 10 / 20 / 30 min (heap/2 byte cap unchanged)
 - [x] Tunneled playback (off by default, DSP bypassed), Passthrough Auto/Off, display HDR types in Stats
 - [x] Speeds 0.05 steps 0.5–1.3×, then 0.1 to 3.0×; seek settle 80 ms; CLOSEST_SYNC ≥15 s; rebuffer resume 250 ms / 500 ms; defaults: buffer 10 min, auto-resume on
+
+## Phase 4 — Performance Engine Update (2026-11-27)
+- [x] Audit (SPEC §7.1–7.2); `.claude/rules/media-engine.md` added
+- [x] VOTING_CARD.html + .claude/VOTING_CARD.md regenerated
+- [ ] **User vote** — Option A [ ] / Option B [ ]  ← awaiting
+- [ ] Governor + onTrimMemory · [ ] cue index / sprites · [ ] libmpv JNI + DualPlaybackEngine · [ ] seek-latency measurement
