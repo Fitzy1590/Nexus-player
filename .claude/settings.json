@@ -26,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c '[ -n \"$ANDROID_HOME$ANDROID_SDK_ROOT\" ] || [ -f local.properties ] || exit 0; set -o pipefail; ./gradlew check --offline 2>&1 | tail -50' || exit 2"
+            "command": "bash -c '[ -n \"$ANDROID_HOME$ANDROID_SDK_ROOT\" ] || [ -f local.properties ] || exit 0; set -o pipefail; ./gradlew assembleDebug testDebugUnitTest lintDebug --offline 2>&1 | tail -50' || exit 2"
           }
         ]
       }
