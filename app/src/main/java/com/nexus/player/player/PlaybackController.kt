@@ -30,6 +30,7 @@ import com.nexus.player.afr.FrameRateMatcher
 import com.nexus.player.afr.Mode
 import com.nexus.player.audio.DspEngine
 import com.nexus.player.audio.DspParams
+import com.nexus.player.audio.Preset
 import com.nexus.player.data.NexusDb
 import com.nexus.player.data.PlaybackState
 import com.nexus.player.diag.DiagLog
@@ -49,8 +50,9 @@ class PlaybackController(
     private val onCompleted: () -> Unit = {},
 ) {
     val prefs = Prefs(activity)
-    private val dsp = DspEngine().apply { params = prefs.dsp; bypass = prefs.tunneling }
-    val player: ExoPlayer = PlayerFactory.create(activity, dsp, request.headers, prefs.bufferMin * 60_000, prefs.passthroughAuto, tunneled = prefs.tunneling)
+    private val startTunneled = prefs.tunneling && isNeutral(prefs.dsp)
+    private val dsp = DspEngine().apply { params = prefs.dsp; bypass = startTunneled }
+    val player: ExoPlayer = PlayerFactory.create(activity, dsp, request.headers, prefs.bufferMin * 60_000, prefs.passthroughAuto, tunneled = startTunneled)
     private val dao = NexusDb.get(activity).playbackState()
     private val key = NexusDb.keyFor(request.uri)
     private var saved: PlaybackState? = null
@@ -58,8 +60,11 @@ class PlaybackController(
 
     var dspParams by mutableStateOf(dsp.params); private set
     /** True when the sink skips DSP: bitstream passthrough or tunneled playback. */
-    var passthrough by mutableStateOf(prefs.tunneling); private set
-    val tunneled = prefs.tunneling
+    var passthrough by mutableStateOf(startTunneled); private set
+    /** Auto-tunnel: on while DSP is neutral, off (PCM + DSP) as soon as any DSP is engaged. */
+    var tunneled by mutableStateOf(startTunneled); private set
+    /** Compressed audio in the sink: DSP truly unavailable. */
+    var bitstream by mutableStateOf(false); private set
     val displayHdr: String = hdrLabel(currentDisplay()?.hdrCapabilities?.supportedHdrTypes)
     var resumePrompt by mutableStateOf<PlaybackState?>(null); private set
     var speed by mutableFloatStateOf(prefs.globalSpeed); private set
@@ -97,7 +102,8 @@ class PlaybackController(
 
     private val analytics = object : AnalyticsListener {
         override fun onAudioTrackInitialized(t: AnalyticsListener.EventTime, c: AudioSink.AudioTrackConfig) {
-            passthrough = tunneled || !Util.isEncodingLinearPcm(c.encoding)
+            bitstream = !Util.isEncodingLinearPcm(c.encoding)
+            passthrough = tunneled || bitstream
             DiagLog.log("audio") { "track enc=${c.encoding} sr=${c.sampleRate} passthrough=$passthrough" }
             applyVolume()
         }
@@ -167,6 +173,11 @@ class PlaybackController(
         dspParams = p
         dsp.params = p // atomic swap; audio thread rebuilds coefficients on next buffer
         prefs.dsp = p
+        val want = prefs.tunneling && isNeutral(p)
+        if (want != tunneled) {
+            tunneled = want; dsp.bypass = want; passthrough = want || bitstream
+            (player.trackSelector as androidx.media3.exoplayer.trackselection.DefaultTrackSelector).let { it.parameters = it.buildUponParameters().setTunnelingEnabled(want).build() }
+        }
         applyVolume()
     }
 
@@ -278,6 +289,9 @@ class PlaybackController(
     companion object {
         const val LONG_JUMP_MS = 15_000L
         const val AUTOSAVE_MS = 10_000L
+
+        /** No DSP stage active and gain ≤100 % (player volume suffices) → safe to tunnel. */
+        fun isNeutral(p: DspParams) = p.preset == Preset.FLAT && p.voiceBoostDb == 0f && p.volume <= 1f
         private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
         /** Display HDR types (Display.HdrCapabilities constants) → label; empty/absent = SDR only. */

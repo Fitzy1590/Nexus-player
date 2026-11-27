@@ -297,7 +297,7 @@ fun PlayerScreen(c: PlaybackController, onExportDiagnostics: () -> Unit) {
                 val v = c.dspParams.volume
                 Text("${Math.round(v * 100)}%", style = Hud.Mono.copy(color = if (v > 1f) Hud.Amber else Hud.Mint))
                 VolumeBar(v, Modifier.weight(1f))
-                Text(if (c.passthrough) "MAX100" else "VOL", style = Hud.Label)
+                Text(if (c.bitstream) "MAX100" else "VOL", style = Hud.Label)
             }
         }
 
@@ -351,7 +351,7 @@ fun PlayerScreen(c: PlaybackController, onExportDiagnostics: () -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Sound", style = Hud.Title)
                     Spacer(Modifier.weight(1f))
-                    Text(c.dspParams.preset.label().uppercase(), style = Hud.Mono.copy(color = if (c.passthrough) Hud.Muted else Hud.Mint))
+                    Text(c.dspParams.preset.label().uppercase(), style = Hud.Mono.copy(color = if (c.bitstream) Hud.Muted else Hud.Mint))
                 }
                 SoundPanel(c, Modifier.weight(1f))
             }
@@ -484,9 +484,10 @@ private fun StatsPanel(c: PlaybackController, pos: Long, buf: Long, modifier: Mo
 @Composable
 private fun SoundPanel(c: PlaybackController, modifier: Modifier = Modifier) {
     val p = c.dspParams
-    val locked = c.passthrough
+    val locked = c.bitstream
     LazyColumn(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (locked) item { Text(if (c.tunneled) "Tunneled playback active — DSP bypassed." else "Bitstream passthrough active — DSP bypassed by the audio sink.", style = Hud.Ui.copy(color = Hud.Amber)) }
+        if (locked) item { Text("Bitstream passthrough active — DSP bypassed by the audio sink.", style = Hud.Ui.copy(color = Hud.Amber)) }
+        else if (c.tunneled) item { Text("Tunneled — any DSP change switches to PCM.", style = Hud.Ui.copy(color = Hud.Amber)) }
         item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(Preset.entries) { pr ->
@@ -577,7 +578,7 @@ internal fun SettingsPanel(prefs: Prefs, onExport: () -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Tunneled", style = Hud.Ui, modifier = Modifier.width(112.dp))
             HudButton({ tun = false; prefs.tunneling = false }, selected = !tun) { Text("Off") }
-            HudButton({ tun = true; prefs.tunneling = true }, selected = tun) { Text("On · DSP off") }
+            HudButton({ tun = true; prefs.tunneling = true }, selected = tun) { Text("Auto · off when DSP on") }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Passthrough", style = Hud.Ui, modifier = Modifier.width(112.dp))
