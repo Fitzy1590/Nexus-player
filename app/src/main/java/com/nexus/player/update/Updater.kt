@@ -36,11 +36,11 @@ sealed interface UpdateState {
 }
 
 /**
- * Self-update from a PUBLIC releases-only GitHub repo (source repo stays private; no token in the APK).
+ * Self-update from this repo's GitHub Releases. The repo must be PUBLIC (no token is stored in the APK).
  * Android itself refuses any APK not signed with the installed app's key, so a tampered download cannot install.
  */
 object Updater {
-    const val RELEASES_REPO = "Fitzy1590/nexus-player-releases"
+    const val RELEASES_REPO = "Fitzy1590/Nexus-player"
     private const val AUTO_CHECK_INTERVAL_MS = 12 * 60 * 60 * 1000L
 
     var state by mutableStateOf<UpdateState>(UpdateState.Idle)

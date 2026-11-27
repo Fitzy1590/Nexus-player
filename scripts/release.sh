@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Builds a signed release APK and publishes it to the public releases repo the app checks for updates.
+# Builds a signed release APK and publishes it as a GitHub Release (the repo must be public) that the app checks for updates.
 # Run on your own machine (needs: Android SDK, gh CLI logged in, signing key per RELEASING.md).
 set -euo pipefail
 cd "$(dirname "$0")/.."
-REPO="Fitzy1590/nexus-player-releases"
+REPO="Fitzy1590/Nexus-player"
 VER=$(sed -n 's/^val appVersion = "\(.*\)"$/\1/p' app/build.gradle.kts)
 [ -n "$VER" ] || { echo "Could not read appVersion from app/build.gradle.kts"; exit 1; }
 [ -f keystore.properties ] || [ -n "${NEXUS_KEYSTORE:-}" ] || { echo "No signing key configured. See RELEASING.md."; exit 1; }
