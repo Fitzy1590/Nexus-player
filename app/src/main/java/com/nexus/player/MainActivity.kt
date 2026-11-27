@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.util.UnstableApi
@@ -34,6 +35,8 @@ import com.nexus.player.player.Prefs
 import com.nexus.player.ui.Hud
 import com.nexus.player.ui.HudButton
 import com.nexus.player.ui.PlayerScreen
+import com.nexus.player.ui.UpdateRow
+import com.nexus.player.update.Updater
 import com.nexus.player.ui.glass
 
 @UnstableApi
@@ -97,12 +100,14 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun Home(onOpen: () -> Unit) {
     val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+    val ctx = LocalContext.current
+    LaunchedEffect(Unit) { runCatching { focus.requestFocus() }; Updater.check(ctx, force = false) }
     Box(Modifier.fillMaxSize().background(Hud.Obsidian), contentAlignment = Alignment.Center) {
         Column(Modifier.glass().padding(32.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text("NEXUS PLAYER", style = Hud.Label.copy(color = Hud.Cyan))
             Text("Open a stream from Stremio, Nuvio, a browser or a file manager.", style = Hud.Ui.copy(fontSize = 18.sp))
             HudButton(onOpen, Modifier.focusRequester(focus)) { Text("Open local file") }
+            UpdateRow()
         }
     }
 }

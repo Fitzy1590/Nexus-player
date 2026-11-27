@@ -11,3 +11,4 @@ temp/
 *.p12
 .env*
 apk/
+keystore.properties

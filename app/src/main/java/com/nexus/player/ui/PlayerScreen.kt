@@ -533,6 +533,7 @@ private fun SettingsPanel(c: PlaybackController, onExport: () -> Unit) {
             }
             HudButton(onExport) { Text("Export Diagnostic Package") }
         }
+        UpdateRow()
     }
 }
 

@@ -47,5 +47,12 @@
 - [ ] Visual/device check on Android TV + phone (no emulator; Robolectric screen capture timed out)
 - [ ] Windows Tauri 2 shell (X2) — not started; libmpv embedding risk open (SPEC §5)
 
+## In-app updates (2026-11-27)
+- [x] `Updater`: checks public `Fitzy1590/nexus-player-releases` latest release (12 h throttle + manual), downloads APK, verifies GitHub sha256 digest when present, installs via PackageInstaller session
+- [x] Update row on Home + player Settings; `REQUEST_INSTALL_PACKAGES`; unknown-sources prompt
+- [x] Release signing via `keystore.properties` / `NEXUS_*` env; versionCode derived from `appVersion` (0.2.0); `scripts/release.sh`, `RELEASING.md`
+- [x] Debug + release (R8) build, 38 unit tests, lint 0 errors
+- [ ] User: create public releases repo + signing key; first signed install; device-test an update
+
 ## Known gaps
 - libmpv fallback + Windows Tauri shell pending (licensing / embedding risks, SPEC §5).
