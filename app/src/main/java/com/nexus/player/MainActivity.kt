@@ -35,6 +35,7 @@ import com.nexus.player.player.Prefs
 import com.nexus.player.ui.Hud
 import com.nexus.player.ui.HudButton
 import com.nexus.player.ui.PlayerScreen
+import com.nexus.player.ui.SettingsPanel
 import com.nexus.player.ui.UpdateRow
 import com.nexus.player.update.Updater
 import com.nexus.player.ui.glass
@@ -97,16 +98,22 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@UnstableApi
 @Composable
 private fun Home(onOpen: () -> Unit) {
     val focus = remember { FocusRequester() }
     val ctx = LocalContext.current
+    var settings by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() }; Updater.check(ctx, force = false) }
     Box(Modifier.fillMaxSize().background(Hud.Obsidian), contentAlignment = Alignment.Center) {
         Column(Modifier.glass().padding(32.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text("NEXUS PLAYER", style = Hud.Label.copy(color = Hud.Cyan))
             Text("Open a stream from Stremio, Nuvio, a browser or a file manager.", style = Hud.Ui.copy(fontSize = 18.sp))
             HudButton(onOpen, Modifier.focusRequester(focus)) { Text("Open local file") }
+            HudButton({ settings = !settings }, selected = settings) { Text("Settings") }
+            if (settings) SettingsPanel(Prefs(ctx)) {
+                ctx.startActivity(Intent.createChooser(DiagLog.export(ctx, "home screen (no active playback)"), "Export Diagnostic Package"))
+            }
             UpdateRow()
         }
     }

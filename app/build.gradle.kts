@@ -9,7 +9,7 @@ plugins {
 
 // Single source of truth for the version. versionCode is derived (X.Y.Z → X*10000 + Y*100 + Z) so every
 // release automatically increases it; Android refuses updates whose versionCode isn't higher.
-val appVersion = "0.2.3"
+val appVersion = "0.2.4"
 val appVersionCode = appVersion.split('.').map(String::toInt).let { (x, y, z) -> x * 10_000 + y * 100 + z }
 
 // Release signing: keystore.properties (gitignored) or NEXUS_* env vars. Absent → unsigned release APK.

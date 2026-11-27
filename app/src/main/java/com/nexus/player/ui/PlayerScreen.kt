@@ -369,7 +369,7 @@ fun PlayerScreen(c: PlaybackController, onExportDiagnostics: () -> Unit) {
                             Panel.AUDIO -> TrackPanel(c, C.TRACK_TYPE_AUDIO)
                             Panel.SUBS -> TrackPanel(c, C.TRACK_TYPE_TEXT)
                             Panel.SPEED -> SpeedPanel(c)
-                            Panel.SETTINGS -> SettingsPanel(c, onExportDiagnostics)
+                            Panel.SETTINGS -> SettingsPanel(c.prefs, onExportDiagnostics)
                             Panel.NONE -> Unit
                         }
                     }
@@ -556,26 +556,26 @@ private fun SpeedPanel(c: PlaybackController) {
 
 @UnstableApi
 @Composable
-private fun SettingsPanel(c: PlaybackController, onExport: () -> Unit) {
-    var step by remember { mutableIntStateOf(c.prefs.seekStepSec) }
-    var auto by remember { mutableStateOf(c.prefs.autoResume) }
-    var afr by remember { mutableStateOf(c.prefs.afr) }
+internal fun SettingsPanel(prefs: Prefs, onExport: () -> Unit) {
+    var step by remember { mutableIntStateOf(prefs.seekStepSec) }
+    var auto by remember { mutableStateOf(prefs.autoResume) }
+    var afr by remember { mutableStateOf(prefs.afr) }
     var diag by remember { mutableStateOf(DiagLog.enabled) }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Seek step", style = Hud.Ui, modifier = Modifier.width(112.dp))
-            Prefs.SEEK_STEPS.forEach { s -> HudButton({ step = s; c.prefs.seekStepSec = s }, selected = step == s) { Text("${s}s") } }
+            Prefs.SEEK_STEPS.forEach { s -> HudButton({ step = s; prefs.seekStepSec = s }, selected = step == s) { Text("${s}s") } }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Resume", style = Hud.Ui, modifier = Modifier.width(112.dp))
-            HudButton({ auto = true; c.prefs.autoResume = true }, selected = auto) { Text("Auto") }
-            HudButton({ auto = false; c.prefs.autoResume = false }, selected = !auto) { Text("Ask") }
+            HudButton({ auto = true; prefs.autoResume = true }, selected = auto) { Text("Auto") }
+            HudButton({ auto = false; prefs.autoResume = false }, selected = !auto) { Text("Ask") }
             Spacer(Modifier.width(16.dp))
-            HudButton({ afr = !afr; c.prefs.afr = afr }, selected = afr) { Text(if (afr) "AFR on" else "AFR off") }
+            HudButton({ afr = !afr; prefs.afr = afr }, selected = afr) { Text(if (afr) "AFR on" else "AFR off") }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Diagnostics", style = Hud.Ui, modifier = Modifier.width(112.dp))
-            HudButton({ diag = !diag; DiagLog.enabled = diag; c.prefs.diagnostics = diag }, selected = diag) {
+            HudButton({ diag = !diag; DiagLog.enabled = diag; prefs.diagnostics = diag }, selected = diag) {
                 Text(if (diag) "Logging on" else "Logging off")
             }
             HudButton(onExport) { Text("Export Diagnostic Package") }
