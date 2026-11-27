@@ -1,6 +1,5 @@
 # Audio DSP Rules
-- DSP = `androidx.media3.common.audio.AudioProcessor` chain via `DefaultAudioSink.Builder.setAudioProcessors`.
-- PCM only: passthrough/bitstream bypasses DSP → disable DSP UI and show PASSTHROUGH state.
-- Gain > 0 dBFS (volume > 100 %, Voice Boost) must pass through a limiter last in chain.
-- Parameter changes are atomic swaps on the audio thread; no allocation in `queueInput`.
-- Windows: equivalent chain via mpv `af=lavfi=[...]`.
+- DSP runs as a Media3 `AudioProcessor` on PCM only; passthrough/bitstream bypasses it → disable DSP UI, show `PASSTHROUGH`.
+- Voice Boost 0–12 dB, 5-band EQ, DRC: atomic param swap, never re-init the audio sink on change.
+- Software volume 0–200 %: >100 % lives in the DSP gain stage behind a true-peak limiter (`Player.setVolume` caps at 1.0).
+- EQ visualizer bars show configured band gains, not live spectrum (no FFT tap exists yet).

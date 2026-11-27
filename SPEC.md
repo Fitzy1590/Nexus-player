@@ -63,3 +63,30 @@ Status: **VOTED — Option A (2026-11-26).** Phase 2 unlocked.
 1. libmpv licensing (LGPL vs GPL build flags) — must be resolved before distribution. [UNCERTAIN]
 2. Tauri 2 + libmpv window embedding on Windows (wid embed vs render API). [UNCERTAIN]
 3. Stremio/Nuvio header extra format. [UNKNOWN]
+
+## 6. UI/UX Redesign — Cinema Glass (Phase 1 audit, 2026-11-27)
+
+### 6.1 Audit of current UI (`app/src/main/java/com/nexus/player/ui/`)
+- Tokens already in `Hud` object: Obsidian `#0B0E14`, Cyan `#00F2FE`, Mint `#10B981`, Amber `#F59E0B`; panel `#CC121822`; 8 dp radius glass = tint + 1 dp cyan-16 % border, **no blur**. [ESTABLISHED: Hud.kt]
+- Overlays toggle via plain `if (...)` blocks — no `AnimatedVisibility`/`tween` anywhere → already 0 ms snap. [ESTABLISHED: grep of app/src/main/java]
+- Transport: single bottom glass card (seek bar + timecode + `LazyRow` of 10 text buttons: −Ns, Play, +Ns, Sound, Audio, Subs, Speed, Stats, Settings, Zoom reset); panels open **above** the bar, not as a side drawer. [ESTABLISHED: PlayerScreen.kt:287–335]
+- TV focus: `HudButton` = tv-material `Button`, 1.05× scale, 3 dp cyan border, ≥44 dp. Seek bar + `StepSlider` mirror it manually. [ESTABLISHED: Hud.kt]
+- Volume HUD: right-edge 56×280 dp glass column, 0–200 %, amber above 100 %. Seek HUD: centered timecode text only. [ESTABLISHED: PlayerScreen.kt:242–262]
+- Fonts: system Sans/Monospace stand-ins; Inter / JetBrains Mono not bundled. [ESTABLISHED: Hud.kt comment, FEATURE_PROGRESS]
+- Icons: none — every control is a text label. [ESTABLISHED]
+- Windows (Tauri 2) shell: does not exist yet (FEATURE_PROGRESS X2 ⬜). Desktop "redesign" = new build. [ESTABLISHED]
+- Package/applicationId is `com.nexus.player`, not `com.fitzy.nexusplayer`. [ESTABLISHED: app/build.gradle.kts]
+
+### 6.2 Technical constraints on the requested design
+- Compose has no CSS-style `backdrop-filter`; `Modifier.blur` blurs the composable's own content (API 31+). Real backdrop blur needs a library (e.g. Haze) and cannot sample a `SurfaceView` video layer. [PLAUSIBLE: SurfaceView renders on a separate compositor layer] → Android glass = translucent tint + hairline border; true blur only on Windows WebView2 (CSS `backdrop-filter`). I'm not certain — verify before acting.
+- Scrub thumbnails need source trickplay (HLS I-frame playlist / sprite sheet); fallback remains timecode-only. [ESTABLISHED: SPEC §3 P4]
+- EQ "visualizer bars" can show configured band gains; a live spectrum needs a new PCM FFT tap in `DspEngine`. [ESTABLISHED: no FFT code in repo]
+- Violet `#7C3AED` as a solid accent is compatible with the anti-slop rule (which bans purple→pink *gradients*), but adds a 5th accent. [PLAUSIBLE]
+
+### 6.3 Vote
+- [ ] **Option A [RECOMMENDED] — Material Cinema Glass HUD**: Obsidian `#0B0E14`, translucent glass transport bar, right-side Sound drawer (Voice Boost 0–12 dB, DRC, 5-band EQ bars), vertical volume HUD, `#00F2FE` 3 dp focus, icon+label buttons, 0 ms snap.
+- [ ] **Option B — Material 3 Adaptive Media Surfaces**: M3 tonal surfaces, tonal control cards, standard bottom-sheet/drawer menus.
+- [ ] **Option C — Minimalist Monochrome HUD**: `#000000` black glass, sharp white outline controls, monospace timecode focus.
+- Sub-decisions: [ ] rename applicationId → `com.fitzy.nexusplayer` (breaks in-place update / Room data of installed builds) · [ ] include Violet `#7C3AED` secondary accent · [ ] seek indicator chips fixed −10/+10/+30 vs current 5/10/15/30 setting.
+
+Status: **AWAITING VOTE.** No UI code changes until one option is `[x]`.

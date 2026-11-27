@@ -1,194 +1,290 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Nexus Voting Card</title>
+<title>Nexus Cinema Glass Vote</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
+/* Layout: one column of three full-width player mocks, each a votable card, then sub-decisions + copy-vote bar. Single dark look by design. */
 :root{
-  --bg:#0B0E14;--panel:rgba(18,24,34,.72);--line:rgba(0,242,254,.16);
-  --text:#E6EDF3;--muted:#8B98A9;--mint:#10B981;--amber:#F59E0B;--cyan:#00F2FE;
-  --ui:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace;
+  color-scheme:dark;
+  --bg:#0B0E14; --surface:#111722; --line:rgba(255,255,255,.12); --text:#E6EDF3; --muted:rgba(255,255,255,.6);
+  --cyan:#00F2FE; --violet:#7C3AED; --mint:#10B981; --amber:#F59E0B;
+  --glass:rgba(11,14,20,.75);
+  --display:'Outfit','Inter',system-ui,sans-serif; --ui:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
 }
-*{box-sizing:border-box;margin:0}
-body{background:var(--bg);color:var(--text);font:14px/1.5 var(--ui);padding:24px 16px 48px}
-.wrap{max-width:1120px;margin:0 auto;display:grid;gap:24px}
-header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:16px;border-bottom:1px solid var(--line);padding-bottom:16px}
-h1{font-size:22px;font-weight:700;letter-spacing:-.01em}
-h1 span{color:var(--cyan)}
-.tag{font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-.tag b{color:var(--amber)}
-h2{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
-.glass{background:var(--panel);border:1px solid var(--line);border-radius:8px;backdrop-filter:blur(12px)}
-/* Player mock */
-.player{position:relative;aspect-ratio:16/9;overflow:hidden;border-radius:8px;border:1px solid var(--line);
-  background:linear-gradient(180deg,#0d141d 0%,#0B0E14 100%)}
-.grid-bg{position:absolute;inset:0;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:64px 64px;opacity:.35}
-.stats{position:absolute;top:16px;left:16px;padding:8px 16px;font:12px/1.7 var(--mono);display:grid;grid-template-columns:auto auto;column-gap:16px}
-.stats dt{color:var(--muted)}.stats dd{color:var(--cyan)}
-.badge{position:absolute;top:16px;right:16px;display:flex;gap:8px}
-.pill{font:600 11px var(--mono);padding:4px 8px;border-radius:4px;border:1px solid currentColor}
-.pill.m{color:var(--mint)}.pill.a{color:var(--amber)}.pill.c{color:var(--cyan)}
-.vol{position:absolute;right:24px;top:72px;bottom:96px;width:44px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px 0}
-.vol .track{flex:1;width:6px;border-radius:3px;background:rgba(255,255,255,.08);position:relative}
-.vol .fill{position:absolute;bottom:0;left:0;right:0;height:70%;border-radius:3px;background:var(--mint)}
-.vol .over{position:absolute;bottom:50%;left:0;right:0;height:20%;background:var(--amber);border-radius:3px 3px 0 0}
-.vol .mk{position:absolute;left:-6px;right:-6px;bottom:50%;height:1px;background:var(--text);opacity:.5}
-.vol .v{font:600 12px var(--mono);color:var(--amber)}
-.vol .k{font:10px var(--mono);color:var(--muted)}
-.bar{position:absolute;left:16px;right:16px;bottom:16px;padding:8px 16px;display:grid;gap:8px}
-.tl{position:relative;height:6px;background:rgba(255,255,255,.08);border-radius:3px}
-.tl .buf{position:absolute;left:0;top:0;bottom:0;width:58%;background:rgba(0,242,254,.25);border-radius:3px}
-.tl .pos{position:absolute;left:0;top:0;bottom:0;width:41%;background:var(--cyan);border-radius:3px}
-.thumb{position:absolute;left:calc(41% + 60px);bottom:104px;width:128px;z-index:2;aspect-ratio:16/9;border:2px solid var(--cyan);border-radius:4px;background:#121a24;display:grid;place-items:end center;font:11px var(--mono);color:var(--cyan);padding:4px}
-.ctrls{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
-.btns{display:flex;gap:8px}
-.btn{min-width:44px;height:44px;padding:0 12px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--text);font:600 12px var(--ui);cursor:pointer}
-.btn.focus{border:3px solid var(--cyan);transform:scale(1.05)}
-.tc{font:600 13px var(--mono)}.tc i{font-style:normal;color:var(--muted)}
-/* DSP */
-.dsp{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}
-.card{padding:16px}
-.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
-.chip{min-height:44px;padding:0 16px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--text);font:500 13px var(--ui);cursor:pointer}
-.chip.on{border-color:var(--mint);color:var(--mint)}
-.eq{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;height:176px;align-items:end}
-.band{display:flex;flex-direction:column;align-items:center;gap:8px;height:100%}
-.band .t{flex:1;width:6px;border-radius:3px;background:rgba(255,255,255,.08);position:relative}
-.band .t::after{content:"";position:absolute;left:-7px;width:20px;height:8px;border-radius:2px;background:var(--cyan);bottom:var(--h)}
-.band .t::before{content:"";position:absolute;left:0;right:0;border-radius:3px;background:rgba(16,185,129,.55);bottom:50%;height:calc(var(--h) - 50%)}
-.band .f{font:11px var(--mono);color:var(--muted)}
-.slider{margin-top:16px;display:grid;gap:8px}
-.slider label{display:flex;justify-content:space-between;font-weight:500}
-.slider label span{font:600 13px var(--mono);color:var(--mint)}
-input[type=range]{width:100%;accent-color:var(--mint);height:44px}
-.chain{display:grid;gap:8px;font:12px var(--mono)}
-.node{display:flex;justify-content:space-between;padding:8px 12px;border-left:3px solid var(--cyan);background:rgba(0,242,254,.04)}
-.node span{color:var(--muted)}
-.node.w{border-color:var(--amber)}
-.warn{margin-top:8px;font-size:12px;color:var(--amber)}
-/* Vote */
-.vote{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.opt{padding:24px;border-radius:8px;border:1px solid var(--line);background:var(--panel);cursor:pointer;text-align:left;color:var(--text);font:inherit;display:grid;gap:12px;align-content:start}
-.opt[aria-pressed=true]{border:3px solid var(--cyan);padding:22px}
-.opt .hd{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.opt h3{font-size:17px}
-.opt ul{padding-left:18px;color:var(--muted);display:grid;gap:4px}
-.opt ul li b{color:var(--text);font-weight:500}
-.rec{font:600 11px var(--mono);color:var(--mint);border:1px solid var(--mint);padding:2px 8px;border-radius:4px}
-.out{font:600 12px var(--mono);color:var(--muted)}
-.out b{color:var(--cyan)}
-@media (max-width:760px){.dsp,.vote{grid-template-columns:1fr}.thumb,.stats{display:none}.vol{top:16px;bottom:120px}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 var(--ui);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 120px}
+.wrap{max-width:1080px;margin:0 auto;display:grid;gap:32px}
+header{display:grid;gap:8px;border-bottom:1px solid var(--line);padding-bottom:24px}
+.eyebrow{font:600 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+h1{font:700 clamp(24px,4vw,34px)/1.1 var(--display);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1 em{font-style:normal;color:var(--cyan)}
+.lede{color:var(--muted);max-width:68ch;margin:0}
+.audit{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:8px}
+.audit div{font:12px/1.5 var(--mono);color:var(--muted);border-left:2px solid var(--line);padding:4px 0 4px 12px}
+.audit b{color:var(--text);font-weight:600}
+.audit .warn{border-color:var(--amber)}
+
+/* Option card */
+.opt{display:grid;gap:16px;border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--surface);cursor:pointer}
+.opt:has(input:checked){border-color:var(--cyan);box-shadow:inset 0 0 0 1px var(--cyan)}
+.opt-head{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.opt-head label{display:flex;gap:12px;align-items:center;cursor:pointer;min-height:44px}
+.opt input[type=radio]{width:22px;height:22px;accent-color:var(--cyan);margin:0}
+.opt h2{font:600 18px var(--display);margin:0}
+.rec{font:600 10px var(--mono);letter-spacing:.08em;color:var(--bg);background:var(--cyan);padding:3px 8px;border-radius:4px}
+.opt p{margin:0;color:var(--muted);max-width:75ch}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.sw{display:flex;align-items:center;gap:6px;font:11px var(--mono);color:var(--muted)}
+.sw i{width:16px;height:16px;border-radius:4px;border:1px solid var(--line);display:block}
+
+/* Shared player frame: a letterboxed dusk still drawn in CSS */
+.player{position:relative;width:100%;max-width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;
+  background:
+    linear-gradient(180deg,#000 0 7%,transparent 7% 93%,#000 93%),
+    radial-gradient(120% 60% at 70% 78%,rgba(196,110,52,.55),transparent 60%),
+    linear-gradient(180deg,#0d1a2b 10%,#1c2a3d 52%,#3a2c2a 66%,#0c0f14 67%,#07090d 100%);
+  font-size:clamp(8px,1.25vw,13px)}
+.player::after{content:"";position:absolute;left:0;right:0;top:66.5%;height:1px;background:rgba(255,190,140,.25)}
+.player *{position:absolute}
+.player .row,.player .row *{position:static}
+
+/* ---- A: Cinema Glass ---- */
+.A .glass{background:var(--glass);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:10px}
+.A .badges{top:10%;left:2.5%;display:flex;gap:.6em}
+.A .badge{position:static;font:600 1em var(--mono);padding:.35em .7em;border-radius:6px}
+.A .b-res{color:#fff}.A .b-fps{color:var(--mint)}.A .b-br{color:var(--amber)}
+.A .bar{left:2.5%;right:2.5%;bottom:9.5%;padding:1.2em 1.4em;display:grid;gap:.9em}
+.A .scrub{position:relative;height:.45em;border-radius:1em;background:rgba(255,255,255,.14)}
+.A .scrub .buf{left:0;top:0;bottom:0;width:58%;background:rgba(0,242,254,.28);border-radius:1em}
+.A .scrub .pos{left:0;top:0;bottom:0;width:41%;background:var(--cyan);border-radius:1em}
+.A .scrub .knob{left:41%;top:50%;width:1.1em;height:1.1em;margin:-.55em 0 0 -.55em;border-radius:50%;background:#fff}
+.A .thumb{left:41%;bottom:1.6em;transform:translateX(-50%);width:9em;aspect-ratio:16/9;border-radius:6px;border:2px solid var(--cyan);
+  background:linear-gradient(180deg,#0d1a2b,#3a2c2a 70%,#0c0f14 71%)}
+.A .thumb span{left:0;right:0;bottom:-1.7em;text-align:center;font:600 .95em var(--mono);color:#fff}
+.A .row{display:flex;align-items:center;gap:.6em}
+.A .tc{font:600 1.15em var(--mono);color:#fff;font-variant-numeric:tabular-nums}
+.A .tc small{color:var(--muted);font-weight:400}
+.A .sp{flex:1}
+.A .btn{display:inline-flex;align-items:center;gap:.45em;height:3.4em;min-width:3.4em;padding:0 .9em;border-radius:8px;border:1px solid rgba(255,255,255,.12);color:#fff;font:500 1em var(--ui);justify-content:center}
+.A .btn svg{width:1.4em;height:1.4em}
+.A .btn.focus{border:3px solid var(--cyan);transform:scale(1.05);color:var(--cyan);background:rgba(0,242,254,.1)}
+.A .btn.on{color:var(--mint);border-color:rgba(16,185,129,.5)}
+.A .chip{font:600 1em var(--mono);color:var(--cyan)}
+.A .drawer{top:7%;right:2.5%;bottom:36%;width:31%;padding:1.2em;display:grid;gap:.8em;align-content:start}
+.A .drawer *{position:static}
+.A .dh{font:600 1.1em var(--display);display:flex;justify-content:space-between}
+.A .dh span{font:600 .85em var(--mono);color:var(--mint)}
+.A .lbl{font:600 .8em var(--mono);letter-spacing:.08em;color:var(--muted);text-transform:uppercase;display:flex;justify-content:space-between}
+.A .lbl b{color:var(--mint)}
+.A .slider{height:.45em;border-radius:1em;background:rgba(255,255,255,.14);position:relative!important}
+.A .slider i{position:absolute!important;left:0;top:0;bottom:0;width:50%;background:var(--mint);border-radius:1em}
+.A .toggle{display:flex;justify-content:space-between;align-items:center;font-size:1em}
+.A .sw2{width:2.6em;height:1.4em;border-radius:1em;background:var(--mint);position:relative!important}
+.A .sw2::after{content:"";position:absolute;right:.2em;top:.2em;width:1em;height:1em;border-radius:50%;background:#fff}
+.A .eq{display:grid;grid-template-columns:repeat(5,1fr);gap:.5em;height:5em;align-items:end}
+.A .eq i{display:block;background:linear-gradient(180deg,var(--cyan),rgba(0,242,254,.25));border-radius:3px}
+.A .eqf{display:grid;grid-template-columns:repeat(5,1fr);gap:.5em;font:.75em var(--mono);color:var(--muted);text-align:center}
+.A .vol{right:36%;top:20%;bottom:40%;width:3.6em;padding:.8em 0;display:flex;flex-direction:column;align-items:center;gap:.5em}
+.A .vol *{position:static}
+.A .vol .v{font:600 .95em var(--mono);color:var(--amber)}
+.A .vol .t{flex:1;width:.45em;border-radius:1em;background:rgba(255,255,255,.14);position:relative!important;overflow:hidden}
+.A .vol .t i{position:absolute!important;left:0;right:0;bottom:0;height:70%;background:linear-gradient(0deg,var(--mint) 0 71%,var(--amber) 71%)}
+.A .vol .k{font:.75em var(--mono);color:var(--muted)}
+.A .seekchip{left:50%;top:32%;transform:translateX(-50%);padding:.6em 1.2em;font:600 1.3em var(--mono);color:var(--cyan)}
+
+/* ---- B: Material 3 tonal ---- */
+.B{--t1:#1D2430;--t2:#2A3342;--on:#D8E2FF;--pri:#A8C7FA}
+.B .sheet{left:2.5%;right:2.5%;bottom:6%;padding:1.2em 1.6em;border-radius:28px;background:rgba(29,36,48,.92);display:grid;gap:.9em}
+.B .scrub{position:relative;height:.35em;border-radius:1em;background:var(--t2)}
+.B .scrub i{left:0;top:0;bottom:0;width:41%;background:var(--pri);border-radius:1em}
+.B .row{display:flex;align-items:center;gap:.6em}
+.B .tc{font:500 1.1em var(--ui);color:var(--on);font-variant-numeric:tabular-nums}
+.B .sp{flex:1}
+.B .fab{width:4.2em;height:4.2em;border-radius:16px;background:var(--pri);color:#062E6F;display:grid;place-items:center}
+.B .fab svg{width:1.8em;height:1.8em}
+.B .tonal{height:3.2em;padding:0 1.2em;border-radius:2em;background:var(--t2);color:var(--on);display:inline-flex;align-items:center;font:500 1em var(--ui)}
+.B .tonal.focus{outline:3px solid var(--cyan);outline-offset:2px}
+.B .card{top:10%;right:2.5%;width:30%;padding:1.2em;border-radius:20px;background:rgba(29,36,48,.92);display:grid;gap:.6em;color:var(--on)}
+.B .card *{position:static}
+.B .card h4{margin:0;font:500 1.1em var(--ui)}
+.B .item{display:flex;justify-content:space-between;padding:.6em .9em;border-radius:12px;background:var(--t2);font-size:.95em}
+.B .item.sel{background:#3B4A6B;color:#fff}
+
+/* ---- C: Monochrome ---- */
+.C .player{background:
+    linear-gradient(180deg,#000 0 7%,transparent 7% 93%,#000 93%),
+    linear-gradient(180deg,#151515 10%,#2a2a2a 55%,#3c3c3c 66%,#0a0a0a 67%,#000 100%)}
+.C .player::after{background:rgba(255,255,255,.18)}
+.C .bar{left:0;right:0;bottom:7%;padding:1.2em 2.5%;background:rgba(0,0,0,.82);border-top:1px solid #fff;display:grid;gap:.9em}
+.C .scrub{position:relative;height:2px;background:rgba(255,255,255,.3)}
+.C .scrub i{left:0;top:-1px;height:4px;width:41%;background:#fff}
+.C .row{display:flex;align-items:center;gap:.6em}
+.C .tc{font:600 2em var(--mono);color:#fff;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.C .tc small{font-size:.55em;color:rgba(255,255,255,.55)}
+.C .sp{flex:1}
+.C .ob{height:3.2em;padding:0 1em;border:1px solid #fff;color:#fff;display:inline-flex;align-items:center;font:500 .95em var(--mono);text-transform:uppercase;letter-spacing:.06em}
+.C .ob.focus{background:#fff;color:#000}
+.C .meta{top:10%;right:2.5%;font:600 1em var(--mono);color:#fff;text-align:right;line-height:1.8}
+
+.note{font-size:12px;color:var(--muted)}
+.note b{color:var(--amber);font-weight:600}
+
+/* Sub-decisions */
+.subs{display:grid;gap:12px;border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--surface)}
+.subs h2{font:600 16px var(--display);margin:0}
+.q{display:grid;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
+.q:first-of-type{border-top:0}
+.q > span{font-weight:500}
+.q small{color:var(--muted)}
+.choices{display:flex;flex-wrap:wrap;gap:8px}
+.choices label{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border:1px solid var(--line);border-radius:8px;cursor:pointer}
+.choices label:has(input:checked){border-color:var(--cyan);color:var(--cyan)}
+.choices input{accent-color:var(--cyan);margin:0}
+textarea{width:100%;min-height:72px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:12px;font:13px var(--ui);resize:vertical}
+textarea:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+
+/* Vote bar */
+.votebar{position:fixed;left:0;right:0;bottom:0;background:rgba(11,14,20,.94);border-top:1px solid var(--line);backdrop-filter:blur(12px);
+  padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.votebar .in{max-width:1080px;margin:0 auto;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+#out{flex:1;min-width:0;font:12px var(--mono);color:var(--muted);overflow-wrap:anywhere}
+#out b{color:var(--text)}
+button{min-height:44px;padding:0 20px;border-radius:8px;border:0;background:var(--cyan);color:#06121A;font:600 14px var(--ui);cursor:pointer}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:640px){.A .drawer{width:40%}.A .vol{right:45%}.B .card{width:42%}}
 </style>
-</head>
-<body>
+
 <div class="wrap">
   <header>
-    <div>
-      <div class="tag">Phase 1 · Visual Voting Card</div>
-      <h1>Nexus <span>Universal 4K</span> Media Player — V2 Build</h1>
+    <div class="eyebrow">com.nexus.player · Phase 3 UI/UX vote · 2026-11-27</div>
+    <h1>Nexus Player <em>Cinema Glass</em> redesign</h1>
+    <p class="lede">Pick one HUD direction for Android Mobile, Android TV and the Windows build. Each mock shows the same frame at 01:12:44 into a 4K HDR10+ film, with the controls in their busiest state.</p>
+    <div class="audit">
+      <div><b>Tokens exist.</b> Obsidian, Cyan, Mint, Amber already live in <code>Hud.kt</code>.</div>
+      <div><b>Already 0 ms.</b> Overlays toggle with plain <code>if</code>; no animations.</div>
+      <div><b>Text-only buttons.</b> 10 labelled buttons in one row; no icons.</div>
+      <div class="warn"><b>No real blur on Android.</b> Compose cannot blur a SurfaceView video behind the HUD; glass is a tinted panel there.</div>
+      <div class="warn"><b>Fonts not bundled.</b> System sans and mono stand in for now.</div>
+      <div class="warn"><b>Windows shell not built.</b> Desktop is a new build, not a reskin.</div>
     </div>
-    <div class="tag">Status: <b>Awaiting vote</b></div>
   </header>
 
-  <section>
-    <h2>Playback HUD — Android TV (D-pad Up held)</h2>
-    <div class="player">
-      <div class="grid-bg"></div>
-      <dl class="stats glass">
-        <dt>ENGINE</dt><dd>Media3 · HW c2.amlogic.hevc</dd>
-        <dt>VIDEO</dt><dd>3840×2160 · HEVC Main10 · 23.976</dd>
-        <dt>BITRATE</dt><dd>62.4 Mbps</dd>
-        <dt>BUFFER</dt><dd>41.2 s / 60 s · back 5 s</dd>
-        <dt>DISPLAY</dt><dd>AFR 60 → 23.976 Hz</dd>
-      </dl>
-      <div class="badge"><span class="pill c">HDR10</span><span class="pill m">DIALOGUE +6 dB</span><span class="pill a">PCM 7.1</span></div>
-      <div class="vol glass">
-        <span class="v">140%</span>
-        <div class="track"><div class="fill"></div><div class="over"></div><div class="mk"></div></div>
-        <span class="k">VOL</span>
+  <!-- Option A -->
+  <section class="opt" data-opt="1">
+    <div class="opt-head">
+      <label><input type="radio" name="opt" id="opt-a" value="1" checked><h2>1 · Material Cinema Glass HUD</h2></label>
+      <span class="rec">RECOMMENDED</span>
+    </div>
+    <div class="A"><div class="player">
+      <div class="badges"><span class="badge glass b-res">4K HDR10+</span><span class="badge glass b-fps">23.976 fps</span><span class="badge glass b-br">42.6 Mbps</span></div>
+      <div class="glass seekchip">+30s ▸ 01:13:14</div>
+      <div class="glass vol"><span class="v">140%</span><span class="t"><i></i></span><span class="k">VOL</span></div>
+      <div class="glass drawer">
+        <div class="dh">Sound <span>DIALOGUE</span></div>
+        <div class="lbl">Voice Boost <b>+6.0 dB</b></div>
+        <div class="slider"><i></i></div>
+        <div class="toggle">Night mode (DRC)<span class="sw2"></span></div>
+        <div class="lbl">5-band EQ</div>
+        <div class="eq"><i style="height:45%"></i><i style="height:40%"></i><i style="height:70%"></i><i style="height:85%"></i><i style="height:50%"></i></div>
+        <div class="eqf"><span>60</span><span>250</span><span>1k</span><span>4k</span><span>12k</span></div>
       </div>
-      <div class="thumb">+10 s · 01:12:48</div>
-      <div class="bar glass">
-        <div class="tl"><div class="buf"></div><div class="pos"></div></div>
-        <div class="ctrls">
-          <span class="tc">01:12:38 <i>/ 02:57:04</i></span>
-          <div class="btns">
-            <button class="btn">−10s</button><button class="btn focus">Pause</button><button class="btn">+10s</button>
-            <button class="btn">Audio</button><button class="btn">Subs</button><button class="btn">1.00×</button>
-          </div>
+      <div class="glass bar">
+        <div class="scrub"><i class="buf"></i><i class="pos"></i><i class="knob"></i><div class="thumb"><span>01:12:44</span></div></div>
+        <div class="row">
+          <span class="tc">01:12:44 <small>/ 02:18:05</small></span><span class="sp"></span>
+          <span class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg></span>
+          <span class="btn focus"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></span>
+          <span class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg></span>
+          <span class="sp"></span>
+          <span class="btn on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg>Sound</span>
+          <span class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V6l10-2v12"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></svg>EN 7.1</span>
+          <span class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 12h4M13 12h4M7 15h10"/></svg>CC</span>
+          <span class="btn chip">1.25×</span>
         </div>
       </div>
+    </div></div>
+    <div class="swatches">
+      <span class="sw"><i style="background:#0B0E14"></i>#0B0E14</span><span class="sw"><i style="background:rgba(11,14,20,.75)"></i>glass 75%</span>
+      <span class="sw"><i style="background:#00F2FE"></i>#00F2FE</span><span class="sw"><i style="background:#10B981"></i>#10B981</span>
+      <span class="sw"><i style="background:#F59E0B"></i>#F59E0B</span><span class="sw"><i style="background:#7C3AED"></i>#7C3AED (optional)</span>
     </div>
+    <p>Icon-and-label transport bar with scrub thumbnail, Sound drawer on the right edge, a vertical 0–200 % volume bar that turns amber above 100 %, and seek chips at the centre. Focused element shown on Pause: 1.05× scale with a 3 dp cyan border. This builds on the tokens that are already in the code, so it is the smallest change.</p>
+    <p class="note"><b>Caveat:</b> the blur shown here works on Windows (WebView2). On Android the panels use the same 75 % tint without blur.</p>
   </section>
 
-  <section class="dsp">
-    <div class="glass card">
-      <h2>Sound Tweaking &amp; Equalizer</h2>
-      <div class="chips">
-        <button class="chip">Off (Flat)</button><button class="chip on">Dialogue Boost</button>
-        <button class="chip">Vocal Isolation</button><button class="chip">Night Mode</button><button class="chip">Custom 5-Band</button>
+  <!-- Option B -->
+  <section class="opt" data-opt="2">
+    <div class="opt-head"><label><input type="radio" name="opt" id="opt-b" value="2"><h2>2 · Material 3 Adaptive Media Surfaces</h2></label></div>
+    <div class="B"><div class="player">
+      <div class="card"><h4>Audio track</h4>
+        <div class="item sel"><span>English · TrueHD 7.1</span><span>✓</span></div>
+        <div class="item"><span>English · AC-3 5.1</span></div>
+        <div class="item"><span>Commentary · AAC 2.0</span></div>
       </div>
-      <div class="eq">
-        <div class="band"><div class="t" style="--h:62%"></div><span class="f">60</span></div>
-        <div class="band"><div class="t" style="--h:50%"></div><span class="f">250</span></div>
-        <div class="band"><div class="t" style="--h:78%"></div><span class="f">1k</span></div>
-        <div class="band"><div class="t" style="--h:74%"></div><span class="f">4k</span></div>
-        <div class="band"><div class="t" style="--h:46%"></div><span class="f">12k</span></div>
+      <div class="sheet">
+        <div class="scrub"><i></i></div>
+        <div class="row"><span class="tc">1:12:44 / 2:18:05</span><span class="sp"></span>
+          <span class="tonal">−10</span>
+          <span class="fab"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></span>
+          <span class="tonal">+10</span><span class="sp"></span>
+          <span class="tonal focus">Audio</span><span class="tonal">Subtitles</span><span class="tonal">1.25×</span>
+        </div>
       </div>
-      <div class="slider">
-        <label>Voice Boost <span id="vb">6.0 dB</span></label>
-        <input type="range" min="0" max="12" step="0.5" value="6" oninput="document.getElementById('vb').textContent=(+this.value).toFixed(1)+' dB'">
-      </div>
+    </div></div>
+    <div class="swatches">
+      <span class="sw"><i style="background:#1D2430"></i>tonal 1</span><span class="sw"><i style="background:#2A3342"></i>tonal 2</span>
+      <span class="sw"><i style="background:#A8C7FA"></i>primary</span><span class="sw"><i style="background:#00F2FE"></i>TV focus</span>
     </div>
-    <div class="glass card">
-      <h2>DSP Chain (AudioProcessor)</h2>
-      <div class="chain">
-        <div class="node">Low-shelf bass preserve <span>20–250 Hz</span></div>
-        <div class="node">Dialogue peak EQ <span>1–4 kHz</span></div>
-        <div class="node">DRC compressor <span>Night / Dialogue</span></div>
-        <div class="node">5-band EQ <span>Custom</span></div>
-        <div class="node w">SW gain + limiter <span>0–200 %</span></div>
-      </div>
-      <p class="warn">Bitstream passthrough (TrueHD / DTS-HD to AVR) bypasses DSP — controls lock to PASSTHROUGH.</p>
-    </div>
+    <p>Rounded tonal sheets, a large primary play button and standard M3 cards for track menus. It looks familiar and follows Android conventions, but it moves away from the existing token set and uses more of the frame.</p>
   </section>
 
-  <section>
-    <h2>Cast your vote</h2>
-    <div class="vote">
-      <button class="opt" aria-pressed="false" data-o="A">
-        <div class="hd"><h3>1 · Option A — Full Player Build</h3><span class="rec">RECOMMENDED</span></div>
-        <ul>
-          <li><b>Dual-core decode</b> Media3 + libmpv fallback, 60 s / 5 s buffer</li>
-          <li><b>Dialogue Boost + Bass Preservation</b> DSP chain</li>
-          <li><b>EQ presets</b> + Voice Boost 0–12 dB</li>
-          <li><b>SW volume 0–200 %</b> with D-pad Up/Down HUD, Left/Right seek</li>
-          <li><b>Intent interceptor</b> with header relay</li>
-          <li><b>SQLite resume</b>, tracks, speed 0.5–3.0×</li>
-          <li><b>AFR</b> refresh matching + Compose TV HUD</li>
-        </ul>
-      </button>
-      <button class="opt" aria-pressed="false" data-o="B">
-        <div class="hd"><h3>2 · Option B — Basic Video Player</h3></div>
-        <ul>
-          <li><b>Video view</b> with standard controls</li>
-          <li>No DSP / Dialogue Boost</li>
-          <li>No D-pad volume mapping</li>
-        </ul>
-      </button>
-    </div>
-    <p class="out" style="margin-top:16px">Selection: <b id="sel">none</b> — reply <b>1</b> or <b>2</b> in chat to record it in SPEC.md.</p>
+  <!-- Option C -->
+  <section class="opt" data-opt="3">
+    <div class="opt-head"><label><input type="radio" name="opt" id="opt-c" value="3"><h2>3 · Minimalist Monochrome HUD</h2></label></div>
+    <div class="C"><div class="player">
+      <div class="meta">2160p · HDR10+<br>23.976 · 42.6 Mb/s</div>
+      <div class="bar">
+        <div class="scrub"><i></i></div>
+        <div class="row"><span class="tc">01:12:44 <small>/ 02:18:05</small></span><span class="sp"></span>
+          <span class="ob">−10s</span><span class="ob focus">Pause</span><span class="ob">+10s</span><span class="ob">Sound</span><span class="ob">Audio</span><span class="ob">Subs</span>
+        </div>
+      </div>
+    </div></div>
+    <div class="swatches"><span class="sw"><i style="background:#000"></i>#000000</span><span class="sw"><i style="background:#fff"></i>#FFFFFF</span><span class="sw"><i style="background:rgba(255,255,255,.55)"></i>55 % white</span></div>
+    <p>Black glass with sharp white outlines and a large monospace timecode. The focused element inverts to white. It has the least visual noise, but colour no longer separates states such as boost on, volume over 100 % or passthrough.</p>
+  </section>
+
+  <section class="subs">
+    <h2>Sub-decisions</h2>
+    <div class="q"><span>Rename the app ID to <code>com.fitzy.nexusplayer</code>?</span><small>Installed builds will not update in place, and their saved resume positions stay with the old app.</small>
+      <div class="choices"><label><input type="radio" name="pkg" id="pkg-keep" value="keep com.nexus.player" checked>Keep com.nexus.player</label><label><input type="radio" name="pkg" id="pkg-rename" value="rename to com.fitzy.nexusplayer">Rename</label></div></div>
+    <div class="q"><span>Add violet <code>#7C3AED</code> as a secondary accent?</span><small>A solid accent, never a gradient. It would mark selected tracks and active presets.</small>
+      <div class="choices"><label><input type="radio" name="vio" id="vio-no" value="no violet" checked>No, cyan only</label><label><input type="radio" name="vio" id="vio-yes" value="add violet">Add violet</label></div></div>
+    <div class="q"><span>D-pad seek steps</span><small>Current build: one user setting, 5/10/15/30 s.</small>
+      <div class="choices"><label><input type="radio" name="seek" id="seek-fixed" value="fixed −10/+10, hold +30" checked>−10 / +10, hold for +30</label><label><input type="radio" name="seek" id="seek-keep" value="keep 5/10/15/30 setting">Keep setting</label></div></div>
+    <div class="q"><label for="tweak"><span>Custom tweak (optional)</span></label><textarea id="tweak" placeholder="e.g. Option 1, but move the Sound drawer to the left edge"></textarea></div>
   </section>
 </div>
+
+<div class="votebar"><div class="in"><div id="out"></div><button id="copy" type="button">Copy vote</button></div></div>
+
 <script>
-document.querySelectorAll('.opt').forEach(b=>b.addEventListener('click',()=>{
-  document.querySelectorAll('.opt').forEach(x=>x.setAttribute('aria-pressed','false'));
-  b.setAttribute('aria-pressed','true');
-  document.getElementById('sel').textContent='Option '+b.dataset.o;
-}));
+const $=s=>document.querySelector(s);
+function vote(){
+  const v=n=>document.querySelector(`input[name=${n}]:checked`).value;
+  const t=$('#tweak').value.trim();
+  return `${v('opt')} · ${v('pkg')} · ${v('vio')} · seek ${v('seek')}${t?` · tweak: ${t}`:''}`;
+}
+function render(){$('#out').innerHTML='<b>Your vote:</b> '+vote().replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}
+document.querySelectorAll('.opt').forEach(o=>o.addEventListener('click',e=>{if(e.target.tagName!=='INPUT')o.querySelector('input').checked=true;render()}));
+document.addEventListener('input',render);
+$('#copy').addEventListener('click',()=>{
+  const txt=vote();
+  navigator.clipboard.writeText(txt).then(()=>{$('#copy').textContent='Copied'},()=>{
+    const r=document.createRange();r.selectNodeContents($('#out'));const s=getSelection();s.removeAllRanges();s.addRange(r);$('#copy').textContent='Selected, press Ctrl+C';
+  });
+  setTimeout(()=>$('#copy').textContent='Copy vote',2000);
+});
+render();
 </script>
-</body>
-</html>

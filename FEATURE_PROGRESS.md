@@ -33,6 +33,13 @@
 - `./gradlew assembleDebug testDebugUnitTest lintDebug --offline` → BUILD SUCCESSFUL; 18/18 unit tests pass; lint 0 errors.
 - Not verified on device: no emulator (no KVM) in build container. Needs a real Android TV / phone smoke test.
 
+## Phase 3 — Cinema Glass UI/UX Redesign (2026-11-27)
+- [x] UI audit (SPEC §6.1–6.2)
+- [x] VOTING_CARD.html + .claude/VOTING_CARD.md regenerated for UI vote
+- [x] Governance: `.claude/rules/audio-dsp.md` added; Stop hook (SDK-guarded, pipefail) added
+- [ ] **User vote** — Option A [ ] / B [ ] / C [ ]
+- [ ] Build: tokens + bundled fonts · icon transport bar · Sound side-drawer · volume/seek HUD · TV focus pass · Windows shell
+
 ## Known gaps
 - Inter / JetBrains Mono not bundled (font hosts returned 403); system sans/mono used.
 - libmpv fallback + Windows Tauri shell pending (licensing / embedding risks, SPEC §5).
