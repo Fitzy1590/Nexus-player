@@ -1,10 +1,10 @@
 # Releasing Nexus Player
 
-The app checks the **public** repo `Fitzy1590/nexus-player-releases` for a newer `vX.Y.Z` release and installs its `.apk`
-(Home screen and player Settings → Updates). Source code stays in this private repo; only APKs are published.
+The app checks this repo's **GitHub Releases** (`Fitzy1590/Nexus-player`, must be **public**) for a newer `vX.Y.Z`
+release and installs its `.apk` (Home screen and player Settings → Updates). No token is stored in the app.
 
 ## One-time setup (on your computer)
-1. Create an empty **public** GitHub repo named `nexus-player-releases`.
+1. Make this repo public: GitHub → Settings → General → Danger Zone → Change visibility. (History was scanned: no keys or tokens.)
 2. Create the release signing key. Keep it outside this repo and back it up: if you lose it, users must uninstall to update.
    ```
    keytool -genkeypair -v -keystore ~/keys/nexus-release.jks -alias nexus -keyalg RSA -keysize 4096 -validity 10000
