@@ -546,7 +546,7 @@ private fun TrackPanel(c: PlaybackController, type: Int) {
 private fun SpeedPanel(c: PlaybackController) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(Prefs.SPEEDS) { s -> HudButton({ c.setSpeed(s, c.perItemSpeed) }, selected = c.speed == s) { Text("${fmt1(s)}×") } }
+            items(Prefs.SPEEDS) { s -> HudButton({ c.setSpeed(s, c.perItemSpeed) }, selected = c.speed == s) { Text("${fmt2(s)}×") } }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             HudButton({ c.setSpeed(c.speed, false) }, selected = !c.perItemSpeed) { Text("Global") }

@@ -61,3 +61,4 @@
 - [x] Speeds 0.5–3.0× in 0.1 steps; seek settle 200 ms; resume after 0.5 s / 1 s rebuffer
 - [x] Buffer ahead setting 3 / 10 / 20 / 30 min (heap/2 byte cap unchanged)
 - [x] Tunneled playback (off by default, DSP bypassed), Passthrough Auto/Off, display HDR types in Stats
+- [x] Speeds 0.05 steps 0.5–1.3×, then 0.1 to 3.0×; seek settle 80 ms; CLOSEST_SYNC ≥15 s; rebuffer resume 250 ms / 500 ms; defaults: buffer 10 min, auto-resume on

@@ -53,7 +53,7 @@ object PlayerFactory {
     fun create(ctx: Context, dsp: DspEngine, headers: Map<String, String>, forwardMs: Int, allowPassthrough: Boolean = true, tunneled: Boolean = false): ExoPlayer {
         val am = ctx.getSystemService(ActivityManager::class.java)
         val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(forwardMs, forwardMs, 500, 1_000)
+            .setBufferDurationsMs(forwardMs, forwardMs, 250, 500)
             .setBackBuffer(BACK_BUFFER_MS, true)
             .setTargetBufferBytes(targetBufferBytes(am.largeMemoryClass))
             .setPrioritizeTimeOverSizeThresholds(false)
