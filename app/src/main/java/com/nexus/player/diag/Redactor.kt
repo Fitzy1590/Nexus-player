@@ -11,7 +11,11 @@ object Redactor {
     private val bearer = Regex("(?i)\\b(bearer|basic)\\s+[A-Za-z0-9._~+/=-]+")
     private val userInfo = Regex("(?i)(\\b[a-z][a-z0-9+.-]*://)[^/@\\s]+@")
 
+    /** Long opaque path segments (addon configs / base64 JSON embed debrid API keys in the URL path). */
+    private val opaqueSegment = Regex("(?<=/)[A-Za-z0-9_=-]{32,}(?=[/?#\\s]|$)")
+
     fun redact(s: String): String = s
+        .replace(opaqueSegment, R)
         .replace(headerLine) { "${it.groupValues[1]}${it.groupValues[2]}$R" }
         .replace(bearer) { "${it.groupValues[1]} $R" }
         .replace(queryParam) { "${it.groupValues[1]}$R" }

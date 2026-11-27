@@ -36,6 +36,13 @@ class ParsingTest {
         assertTrue("q=1" in r)
     }
 
+    @Test fun redactsOpaquePathSegments() {
+        val seg = "eyJhcGlLZXkiOiJTRUNSRVQtVE9LRU4tMTIzNDU2Nzg5MCJ9"
+        val r = Redactor.redact("uri=https://h.example/$seg/playback/abc/0?name=x")
+        assertFalse(seg in r)
+        assertTrue("/playback/abc/0?name=x" in r)
+    }
+
     private val m60 = Mode(1, 3840, 2160, 60f)
     private val modes = listOf(
         m60, Mode(2, 3840, 2160, 23.976f), Mode(3, 3840, 2160, 24f), Mode(4, 3840, 2160, 50f),
