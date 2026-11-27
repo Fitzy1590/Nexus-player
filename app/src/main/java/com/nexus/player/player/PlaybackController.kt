@@ -16,6 +16,7 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
+import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.util.Util
@@ -63,6 +64,9 @@ class PlaybackController(
     var bandwidthBps by mutableLongStateOf(0L); private set
     var displayHz by mutableFloatStateOf(0f); private set
     var error by mutableStateOf<String?>(null); private set
+    /** Observable copies so the track panel recomposes when tracks or selection change. */
+    var tracks by mutableStateOf(Tracks.EMPTY); private set
+    var trackParams by mutableStateOf(player.trackSelectionParameters); private set
 
     private val listener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) { if (!isPlaying) save() }
@@ -70,7 +74,11 @@ class PlaybackController(
             DiagLog.log("player") { "state=$state" }
             if (state == Player.STATE_ENDED) { save(completed = true); onCompleted() }
         }
-        override fun onTracksChanged(tracks: Tracks) { if (!tracksRestored && !tracks.isEmpty) restoreTracks(tracks) }
+        override fun onTracksChanged(tracks: Tracks) {
+            this@PlaybackController.tracks = tracks
+            if (!tracksRestored && !tracks.isEmpty) restoreTracks(tracks)
+        }
+        override fun onTrackSelectionParametersChanged(parameters: TrackSelectionParameters) { trackParams = parameters }
         override fun onPlayerError(e: PlaybackException) {
             DiagLog.log("player") { "error ${e.errorCodeName}: ${e.message} cause=${e.cause}" }
             error = "${e.errorCodeName}\n${e.message ?: ""}"
@@ -108,6 +116,9 @@ class PlaybackController(
         DiagLog.log("intent") { "uri=${request.uri} mime=${request.mimeType} headers=${request.headers.keys}" }
         player.addListener(listener)
         player.addAnalyticsListener(analytics)
+        // English audio + subtitles by default; saved per-item choices still override in restoreTracks.
+        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+            .setPreferredAudioLanguage("en").setPreferredTextLanguage("en").build()
         player.setMediaItem(
             MediaItem.Builder().setUri(request.uri).setMimeType(mimeHint(request.mimeType))
                 .setMediaMetadata(MediaMetadata.Builder().setTitle(request.title).build()).build(),

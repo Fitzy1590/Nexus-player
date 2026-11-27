@@ -1,6 +1,9 @@
 package com.nexus.player.ui
 
+import android.app.Activity
 import android.view.ViewGroup
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -79,6 +82,8 @@ private enum class Panel { NONE, SOUND, AUDIO, SUBS, SPEED, SETTINGS }
 
 private const val OVERLAY_TIMEOUT_MS = 5_000L
 private const val HUD_TIMEOUT_MS = 1_500L
+/** Horizontal swipe across the full screen width seeks this far. */
+private const val SWIPE_SEEK_SPAN_MS = 120_000L
 
 @UnstableApi
 @Composable
@@ -106,6 +111,9 @@ fun PlayerScreen(c: PlaybackController, onExportDiagnostics: () -> Unit) {
     var zoomHudAt by remember { mutableLongStateOf(0L) }
     var lastEdgeTapAt by remember { mutableLongStateOf(0L) }
     var lastEdgeZone by remember { mutableIntStateOf(0) }
+    var brightness by remember { mutableFloatStateOf(0.5f) }
+    var brightnessHudAt by remember { mutableLongStateOf(0L) }
+    val window = (LocalContext.current as? Activity)?.window
 
     // Seeks are coalesced: inputs move a pending target; one real seek fires once input settles.
     fun commitSeek(afterMs: Long) {
@@ -215,6 +223,41 @@ fun PlayerScreen(c: PlaybackController, onExportDiagnostics: () -> Unit) {
                     },
                 )
             }.pointerInput(Unit) {
+                // One-finger drag (MX-style): vertical right half = volume, vertical left half = brightness, horizontal = seek.
+                var axis = 0 // 0 undecided, 1 vertical, 2 horizontal
+                var right = true
+                var total = Offset.Zero
+                var startPos = 0L
+                var startVol = 0f
+                var startBright = 0.5f
+                fun end() { if (axis == 2) pending?.let { scrub(it, true) }; axis = 0 }
+                detectDragGestures(
+                    onDragStart = { o ->
+                        axis = 0; total = Offset.Zero; right = o.x >= size.width / 2f
+                        startPos = player.currentPosition; startVol = c.dspParams.volume
+                        startBright = window?.attributes?.screenBrightness?.takeIf { it >= 0f } ?: 0.5f
+                    },
+                    onDragEnd = ::end,
+                    onDragCancel = ::end,
+                ) { change, d ->
+                    total += d
+                    if (axis == 0) axis = if (kotlin.math.abs(total.y) > kotlin.math.abs(total.x)) 1 else 2
+                    change.consume()
+                    val now0 = System.currentTimeMillis()
+                    when {
+                        axis == 2 && c.durationMs > 0 -> scrub(startPos + (total.x / size.width * SWIPE_SEEK_SPAN_MS).toLong(), false)
+                        axis == 1 && right -> {
+                            c.updateDsp(c.dspParams.copy(volume = ((startVol - total.y / size.height * 1.5f) * 100).let { Math.round(it) / 100f }.coerceIn(0f, 2f)))
+                            volumeHudAt = now0
+                        }
+                        axis == 1 -> {
+                            brightness = (startBright - total.y / size.height * 1.5f).coerceIn(0.01f, 1f)
+                            window?.let { w -> w.attributes = w.attributes.also { it.screenBrightness = brightness } }
+                            brightnessHudAt = now0
+                        }
+                    }
+                }
+            }.pointerInput(Unit) {
                 // Two-finger pinch: spread to zoom in (100–300 %), pinch to zoom out; snaps to 100 % near fit.
                 awaitEachGesture {
                     awaitFirstDown(requireUnconsumed = false)
@@ -257,6 +300,11 @@ fun PlayerScreen(c: PlaybackController, onExportDiagnostics: () -> Unit) {
                 VolumeBar(v, Modifier.weight(1f))
                 Text(if (c.passthrough) "MAX100" else "VOL", style = Hud.Label)
             }
+        }
+
+        if (now - brightnessHudAt < HUD_TIMEOUT_MS) {
+            Text("BRIGHTNESS ${Math.round(brightness * 100)}%", style = Hud.Mono.copy(color = Hud.Amber),
+                modifier = Modifier.align(Alignment.CenterStart).padding(24.dp).glass().padding(16.dp))
         }
 
         if (now - zoomHudAt < HUD_TIMEOUT_MS) {
@@ -475,11 +523,11 @@ private fun SoundPanel(c: PlaybackController, modifier: Modifier = Modifier) {
 @UnstableApi
 @Composable
 private fun TrackPanel(c: PlaybackController, type: Int) {
-    val groups = c.player.currentTracks.groups.filter { it.type == type && it.isSupported }
+    val groups = c.tracks.groups.filter { it.type == type && it.isSupported }
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         if (type == C.TRACK_TYPE_TEXT) {
             item {
-                val off = c.player.trackSelectionParameters.disabledTrackTypes.contains(type)
+                val off = c.trackParams.disabledTrackTypes.contains(type)
                 HudButton({ c.selectTrack(type, null) }, selected = off) { Text("Off") }
             }
         }
