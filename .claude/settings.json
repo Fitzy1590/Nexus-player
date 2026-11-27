@@ -1,0 +1,35 @@
+{
+  "model": "opusplan",
+  "outputStyle": "concise",
+  "env": {
+    "CLAUDE_CODE_SUBAGENT_MODEL": "haiku"
+  },
+  "permissions": {
+    "deny": [
+      "Read(node_modules/**)",
+      "Read(dist/**)",
+      "Read(build/**)",
+      "Read(**/build/intermediates/**)",
+      "Read(**/build/tmp/**)",
+      "Read(**/build/reports/**)",
+      "Read(*.lock)",
+      "Read(./.env*)",
+      "Read(**/*.jks)",
+      "Read(**/*.p12)",
+      "Read(**/*.keystore)",
+      "Edit(.github/workflows/**)"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c '[ -n \"$ANDROID_HOME$ANDROID_SDK_ROOT\" ] || [ -f local.properties ] || exit 0; set -o pipefail; ./gradlew assembleDebug testDebugUnitTest lintDebug --offline 2>&1 | tail -50' || exit 2"
+          }
+        ]
+      }
+    ]
+  }
+}
