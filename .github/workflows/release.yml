@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Tag must match appVersion
+        run: |
+          v=$(sed -n 's/^val appVersion = "\(.*\)"/\1/p' app/build.gradle.kts)
+          [ "v$v" = "${GITHUB_REF_NAME}" ] || { echo "Tag ${GITHUB_REF_NAME} != appVersion v$v"; exit 1; }
+
+      - name: Restore keystore
+        env:
+          NEXUS_KEYSTORE_B64: ${{ secrets.NEXUS_KEYSTORE_B64 }}
+        run: |
+          [ -n "$NEXUS_KEYSTORE_B64" ] || { echo "Missing secret NEXUS_KEYSTORE_B64"; exit 1; }
+          echo "$NEXUS_KEYSTORE_B64" | base64 -d > release.jks
+
+      - name: Build signed release APK
+        env:
+          NEXUS_KEYSTORE: release.jks
+          NEXUS_KEYSTORE_PASSWORD: ${{ secrets.NEXUS_KEYSTORE_PASSWORD }}
+          NEXUS_KEY_ALIAS: ${{ secrets.NEXUS_KEY_ALIAS }}
+          NEXUS_KEY_PASSWORD: ${{ secrets.NEXUS_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease testDebugUnitTest
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          apk=$(ls app/build/outputs/apk/release/*.apk | head -n1)
+          cp "$apk" "nexus-player-${GITHUB_REF_NAME}.apk"
+          gh release create "$GITHUB_REF_NAME" "nexus-player-${GITHUB_REF_NAME}.apk" \
+            --title "Nexus Player ${GITHUB_REF_NAME}" --generate-notes
