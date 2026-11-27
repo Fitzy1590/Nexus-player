@@ -1,9 +1,8 @@
 package com.nexus.player.ui
 
-import android.app.Activity
 import android.view.ViewGroup
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -113,7 +112,7 @@ fun PlayerScreen(c: PlaybackController, onExportDiagnostics: () -> Unit) {
     var lastEdgeZone by remember { mutableIntStateOf(0) }
     var brightness by remember { mutableFloatStateOf(0.5f) }
     var brightnessHudAt by remember { mutableLongStateOf(0L) }
-    val window = (LocalContext.current as? Activity)?.window
+    val window = LocalActivity.current?.window
 
     // Seeks are coalesced: inputs move a pending target; one real seek fires once input settles.
     fun commitSeek(afterMs: Long) {
