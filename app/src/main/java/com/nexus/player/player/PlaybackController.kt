@@ -276,7 +276,7 @@ class PlaybackController(
     }
 
     companion object {
-        const val LONG_JUMP_MS = 60_000L
+        const val LONG_JUMP_MS = 15_000L
         const val AUTOSAVE_MS = 10_000L
         private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 

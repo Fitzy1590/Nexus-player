@@ -1,7 +1,7 @@
 # Player Core Rules
 - ExoPlayer (Media3) primary; libmpv fallback only on decoder failure or known-unsupported codec.
-- Buffer: continuous fill (min = max = 3 min default; Settings: 10/20/30 min), 30 s back-buffer, capped at heap/2 (≤768 MB) target bytes.
-- HTTP via OkHttp (pooled connections). Seeks coalesced (SeekAccumulator); ≥60 s jumps use CLOSEST_SYNC.
+- Buffer: continuous fill (min = max = 10 min default; Settings: 10/20/30 min), 30 s back-buffer, capped at heap/2 (≤768 MB) target bytes.
+- HTTP via OkHttp (pooled connections). Seeks coalesced (SeekAccumulator); ≥15 s jumps use CLOSEST_SYNC (settle 80 ms).
 - External launches: return MX (`position`/`duration`/`end_by`) + VLC (`extra_*`) result on every exit.
 - HTTP headers enter via `OkHttpDataSource.Factory.setDefaultRequestProperties` (Exo) / `http-header-fields` (mpv). Never log raw header values.
 - Intent schemes allowlist: http, https, content, file. Reject everything else.

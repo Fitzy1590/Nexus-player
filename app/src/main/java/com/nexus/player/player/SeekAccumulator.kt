@@ -24,7 +24,7 @@ class SeekAccumulator {
     fun cancel() { target = null }
 
     companion object {
-        const val SETTLE_MS = 200L
+        const val SETTLE_MS = 80L
 
         /** Hold-to-accelerate: key auto-repeat count → step multiplier. */
         fun multiplier(repeatCount: Int): Int = when {

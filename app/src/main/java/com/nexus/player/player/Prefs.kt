@@ -12,14 +12,14 @@ class Prefs(ctx: Context) {
         get() = sp.getInt("seek_step", 10)
         set(v) = sp.edit().putInt("seek_step", v).apply()
     var autoResume: Boolean
-        get() = sp.getBoolean("auto_resume", false)
+        get() = sp.getBoolean("auto_resume", true)
         set(v) = sp.edit().putBoolean("auto_resume", v).apply()
     var globalSpeed: Float
         get() = sp.getFloat("speed", 1f)
         set(v) = sp.edit().putFloat("speed", v).apply()
     /** Forward buffer ceiling in minutes; the heap/2 byte cap still bounds memory. Applies to the next playback. */
     var bufferMin: Int
-        get() = sp.getInt("buffer_min", 3)
+        get() = sp.getInt("buffer_min", 10)
         set(v) = sp.edit().putInt("buffer_min", v).apply()
     /** Tunneled video+audio (hardware A/V sync). Bypasses DSP; next playback. */
     var tunneling: Boolean
@@ -52,8 +52,8 @@ class Prefs(ctx: Context) {
 
     companion object {
         val SEEK_STEPS = listOf(5, 10, 15, 30)
-        /** 0.5×–3.0× in 0.1 steps. */
-        val SPEEDS = (5..30).map { it / 10f }
+        /** 0.50×–1.30× in 0.05 steps, then 1.4×–3.0× in 0.1 steps. */
+        val SPEEDS = (10..26).map { it / 20f } + (14..30).map { it / 10f }
         val BUFFER_MINUTES = listOf(3, 10, 20, 30)
     }
 }
