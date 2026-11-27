@@ -35,6 +35,8 @@ data class DspParams(
  */
 class DspEngine {
     @Volatile var params: DspParams = DspParams()
+    /** True when the sink skips DSP (tunneled): [process] leaves samples untouched. */
+    @Volatile var bypass = false
 
     private var applied: DspParams? = null
     private var sampleRate = 48_000
@@ -73,6 +75,7 @@ class DspEngine {
     }
 
     fun process(buf: FloatArray, frames: Int, ch: Int) {
+        if (bypass) return
         val p = params
         if (p !== applied) rebuild(p)
         val volume = p.volume.coerceIn(0f, 2f)

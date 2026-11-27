@@ -10,9 +10,11 @@ import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.audio.AudioCapabilities
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import com.nexus.player.audio.DspEngine
 import com.nexus.player.audio.NexusAudioProcessor
 import com.nexus.player.diag.DiagLog
@@ -21,8 +23,6 @@ import java.util.concurrent.TimeUnit
 
 @UnstableApi
 object PlayerFactory {
-    /** Time ceiling; the byte cap below is the real limit for high-bitrate 4K. */
-    const val FORWARD_BUFFER_MS = 180_000
     /** Covers several back-steps (10–30 s) so rewinds replay from memory instead of re-downloading. */
     const val BACK_BUFFER_MS = 30_000
     private const val MAX_TARGET_BYTES = 768L * 1024 * 1024
@@ -49,10 +49,11 @@ object PlayerFactory {
             .build()
     }
 
-    fun create(ctx: Context, dsp: DspEngine, headers: Map<String, String>): ExoPlayer {
+    /** [forwardMs] is a time ceiling; the byte cap is the real limit for high-bitrate 4K. */
+    fun create(ctx: Context, dsp: DspEngine, headers: Map<String, String>, forwardMs: Int, allowPassthrough: Boolean = true, tunneled: Boolean = false): ExoPlayer {
         val am = ctx.getSystemService(ActivityManager::class.java)
         val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(FORWARD_BUFFER_MS, FORWARD_BUFFER_MS, 1_000, 2_500)
+            .setBufferDurationsMs(forwardMs, forwardMs, 500, 1_000)
             .setBackBuffer(BACK_BUFFER_MS, true)
             .setTargetBufferBytes(targetBufferBytes(am.largeMemoryClass))
             .setPrioritizeTimeOverSizeThresholds(false)
@@ -72,6 +73,7 @@ object PlayerFactory {
                 enableAudioTrackPlaybackParams: Boolean,
             ): AudioSink = DefaultAudioSink.Builder(context)
                 .setAudioProcessors(arrayOf(NexusAudioProcessor(dsp)))
+                .apply { if (!allowPassthrough) setAudioCapabilities(AudioCapabilities.DEFAULT_AUDIO_CAPABILITIES) }
                 .setEnableFloatOutput(enableFloatOutput)
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                 .build()
@@ -79,6 +81,7 @@ object PlayerFactory {
 
         return ExoPlayer.Builder(ctx, renderers)
             .setLoadControl(loadControl)
+            .setTrackSelector(DefaultTrackSelector(ctx).apply { setParameters(buildUponParameters().setTunnelingEnabled(tunneled)) })
             .setMediaSourceFactory(DefaultMediaSourceFactory(dataSource))
             .setAudioAttributes(
                 AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),
