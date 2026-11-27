@@ -20,6 +20,7 @@ import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.util.Util
+import androidx.media3.datasource.HttpDataSource
 import androidx.media3.exoplayer.DecoderReuseEvaluation
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.SeekParameters
@@ -81,7 +82,10 @@ class PlaybackController(
         override fun onTrackSelectionParametersChanged(parameters: TrackSelectionParameters) { trackParams = parameters }
         override fun onPlayerError(e: PlaybackException) {
             DiagLog.log("player") { "error ${e.errorCodeName}: ${e.message} cause=${e.cause}" }
-            error = "${e.errorCodeName}\n${e.message ?: ""}"
+            // Surface the HTTP status (and server body type) even when diagnostic logging is off.
+            val http = generateSequence(e.cause) { it.cause }.filterIsInstance<HttpDataSource.InvalidResponseCodeException>().firstOrNull()
+            val detail = http?.let { "HTTP ${it.responseCode} from ${it.dataSpec.uri.host}" }
+            error = "${e.errorCodeName}\n${detail ?: e.message ?: ""}"
         }
     }
 
