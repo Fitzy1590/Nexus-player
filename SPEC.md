@@ -84,9 +84,9 @@ Status: **VOTED — Option A (2026-11-26).** Phase 2 unlocked.
 - Violet `#7C3AED` as a solid accent is compatible with the anti-slop rule (which bans purple→pink *gradients*), but adds a 5th accent. [PLAUSIBLE]
 
 ### 6.3 Vote
-- [ ] **Option A [RECOMMENDED] — Material Cinema Glass HUD**: Obsidian `#0B0E14`, translucent glass transport bar, right-side Sound drawer (Voice Boost 0–12 dB, DRC, 5-band EQ bars), vertical volume HUD, `#00F2FE` 3 dp focus, icon+label buttons, 0 ms snap.
+- [x] **Option A [RECOMMENDED] — Material Cinema Glass HUD**: Obsidian `#0B0E14`, translucent glass transport bar, right-side Sound drawer (Voice Boost 0–12 dB, DRC, 5-band EQ bars), vertical volume HUD, `#00F2FE` 3 dp focus, icon+label buttons, 0 ms snap.
 - [ ] **Option B — Material 3 Adaptive Media Surfaces**: M3 tonal surfaces, tonal control cards, standard bottom-sheet/drawer menus.
 - [ ] **Option C — Minimalist Monochrome HUD**: `#000000` black glass, sharp white outline controls, monospace timecode focus.
-- Sub-decisions: [ ] rename applicationId → `com.fitzy.nexusplayer` (breaks in-place update / Room data of installed builds) · [ ] include Violet `#7C3AED` secondary accent · [ ] seek indicator chips fixed −10/+10/+30 vs current 5/10/15/30 setting.
+- Sub-decisions: [x] rename applicationId → `com.fitzy.nexusplayer` (breaks in-place update / Room data of installed builds) · [x] include Violet `#7C3AED` secondary accent (selected tracks / active presets) · [x] keep current 5/10/15/30 s seek setting.
 
-Status: **AWAITING VOTE.** No UI code changes until one option is `[x]`.
+Status: **VOTED — Option A (2026-11-27).** Phase 3 build unlocked.

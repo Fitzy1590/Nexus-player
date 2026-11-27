@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -37,7 +38,10 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
@@ -115,7 +119,7 @@ fun PlayerScreen(c: PlaybackController, onExportDiagnostics: () -> Unit) {
     fun showTarget(t: Long, commitAfterMs: Long?) {
         pending = t
         val d = t - player.currentPosition
-        seekHud = "${if (d >= 0) "+" else "−"}${kotlin.math.abs(d) / 1000} s → ${tc(t)}"
+        seekHud = "${if (d >= 0) "+" else "−"}${kotlin.math.abs(d) / 1000}s  ▸  ${tc(t)}"
         seekHudAt = System.currentTimeMillis()
         lastInput = seekHudAt
         if (commitAfterMs != null) commitSeek(commitAfterMs) else seekJob?.cancel()
@@ -231,8 +235,11 @@ fun PlayerScreen(c: PlaybackController, onExportDiagnostics: () -> Unit) {
         )
 
         if (stats) StatsPanel(c, position, buffered, Modifier.align(Alignment.TopStart).padding(16.dp))
+        else if (overlay) Row(Modifier.align(Alignment.TopStart).padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            formatBadges(c).forEach { (t, color) -> Pill(t, color) }
+        }
 
-        Row(Modifier.align(Alignment.TopEnd).padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (!(overlay && panel == Panel.SOUND)) Row(Modifier.align(Alignment.TopEnd).padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (c.passthrough) Pill("PASSTHROUGH", Hud.Amber)
             else if (c.dspParams.preset != Preset.FLAT || c.dspParams.voiceBoostDb > 0f) {
                 Pill("${c.dspParams.preset.label()} +${fmt1(c.dspParams.voiceBoostDb)} dB", Hud.Mint)
@@ -258,7 +265,10 @@ fun PlayerScreen(c: PlaybackController, onExportDiagnostics: () -> Unit) {
 
         if (seekHud != null && (pending != null || now - seekHudAt < HUD_TIMEOUT_MS)) {
             // Thumbnail preview needs source trickplay; degrade to timecode.
-            Text(seekHud!!, style = Hud.Mono, modifier = Modifier.align(Alignment.Center).glass().padding(16.dp))
+            Text(
+                seekHud!!, style = Hud.Mono.copy(fontSize = 20.sp, fontWeight = FontWeight.SemiBold),
+                modifier = Modifier.align(Alignment.Center).glass().padding(horizontal = 24.dp, vertical = 12.dp),
+            )
         }
 
         c.error?.let { err ->
@@ -284,15 +294,31 @@ fun PlayerScreen(c: PlaybackController, onExportDiagnostics: () -> Unit) {
             }
         }
 
+        if (overlay && panel == Panel.SOUND) {
+            // Right-edge Sound drawer; bottom padding clears the transport bar.
+            Column(
+                Modifier.align(Alignment.TopEnd).padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 176.dp)
+                    .widthIn(max = 400.dp).fillMaxHeight().glass().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Sound", style = Hud.Title)
+                    Spacer(Modifier.weight(1f))
+                    Text(c.dspParams.preset.label().uppercase(), style = Hud.Mono.copy(color = if (c.passthrough) Hud.Muted else Hud.Mint))
+                }
+                SoundPanel(c, Modifier.weight(1f))
+            }
+        }
+
         if (overlay) {
             Column(
                 Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                if (panel != Panel.NONE) {
+                if (panel != Panel.NONE && panel != Panel.SOUND) {
                     Box(Modifier.fillMaxWidth().glass().padding(16.dp)) {
                         when (panel) {
-                            Panel.SOUND -> SoundPanel(c)
+                            Panel.SOUND -> Unit
                             Panel.AUDIO -> TrackPanel(c, C.TRACK_TYPE_AUDIO)
                             Panel.SUBS -> TrackPanel(c, C.TRACK_TYPE_TEXT)
                             Panel.SPEED -> SpeedPanel(c)
@@ -308,25 +334,26 @@ fun PlayerScreen(c: PlaybackController, onExportDiagnostics: () -> Unit) {
                         onScrub = ::scrub,
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(tc(pending ?: position), style = Hud.Mono.copy(color = if (pending != null) Hud.Amber else Hud.TextC))
-                        Text(" / ${tc(duration)}", style = Hud.Mono.copy(color = Hud.Muted))
+                        Text(tc(pending ?: position), style = Hud.Mono.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = if (pending != null) Hud.Amber else Hud.TextC))
+                        Text(" / ${tc(duration)}", style = Hud.Mono.copy(fontSize = 15.sp, color = Hud.Muted))
                         Spacer(Modifier.weight(1f))
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            item { HudButton({ queueSeek(-c.stepMs) }) { Text("−${c.prefs.seekStepSec}s") } }
+                            item { HudButton({ queueSeek(-c.stepMs) }, icon = HudIcons.Back, label = "${c.prefs.seekStepSec}s") }
                             item {
-                                HudButton({ if (player.isPlaying) player.pause() else player.play() }, Modifier.focusRequester(playFocus)) {
-                                    Text(if (playing) "Pause" else "Play")
-                                }
+                                HudButton(
+                                    { if (player.isPlaying) player.pause() else player.play() }, Modifier.focusRequester(playFocus),
+                                    icon = if (playing) HudIcons.Pause else HudIcons.Play,
+                                )
                             }
-                            item { HudButton({ queueSeek(c.stepMs) }) { Text("+${c.prefs.seekStepSec}s") } }
+                            item { HudButton({ queueSeek(c.stepMs) }, icon = HudIcons.Forward, label = "${c.prefs.seekStepSec}s") }
                             fun toggle(p: Panel) { panel = if (panel == p) Panel.NONE else p }
-                            item { HudButton({ toggle(Panel.SOUND) }, selected = panel == Panel.SOUND) { Text("Sound") } }
-                            item { HudButton({ toggle(Panel.AUDIO) }, selected = panel == Panel.AUDIO) { Text("Audio") } }
-                            item { HudButton({ toggle(Panel.SUBS) }, selected = panel == Panel.SUBS) { Text("Subs") } }
-                            item { HudButton({ toggle(Panel.SPEED) }, selected = panel == Panel.SPEED) { Text("${fmt2(c.speed)}×") } }
+                            item { HudButton({ toggle(Panel.SOUND) }, selected = panel == Panel.SOUND, icon = HudIcons.Sound, label = "Sound") }
+                            item { HudButton({ toggle(Panel.AUDIO) }, selected = panel == Panel.AUDIO, icon = HudIcons.Audio, label = "Audio") }
+                            item { HudButton({ toggle(Panel.SUBS) }, selected = panel == Panel.SUBS, icon = HudIcons.Subs, label = "Subs") }
+                            item { HudButton({ toggle(Panel.SPEED) }, selected = panel == Panel.SPEED, icon = HudIcons.Speed, label = "${fmt2(c.speed)}×") }
                             if (zoom != 1f) item { HudButton({ zoom = 1f; zoomHudAt = System.currentTimeMillis() }) { Text("Zoom ${Math.round(zoom * 100)}% · Reset") } }
-                            item { HudButton({ stats = !stats }, selected = stats) { Text("Stats") } }
-                            item { HudButton({ toggle(Panel.SETTINGS) }, selected = panel == Panel.SETTINGS) { Text("Settings") } }
+                            item { HudButton({ stats = !stats }, selected = stats, icon = HudIcons.Stats, label = "Stats") }
+                            item { HudButton({ toggle(Panel.SETTINGS) }, selected = panel == Panel.SETTINGS, icon = HudIcons.Settings, label = "Settings") }
                         }
                     }
                 }
@@ -407,10 +434,10 @@ private fun StatsPanel(c: PlaybackController, pos: Long, buf: Long, modifier: Mo
 
 @UnstableApi
 @Composable
-private fun SoundPanel(c: PlaybackController) {
+private fun SoundPanel(c: PlaybackController, modifier: Modifier = Modifier) {
     val p = c.dspParams
     val locked = c.passthrough
-    LazyColumn(Modifier.height(320.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    LazyColumn(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (locked) item { Text("Bitstream passthrough active — DSP bypassed by the audio sink.", style = Hud.Ui.copy(color = Hud.Amber)) }
         item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -423,6 +450,12 @@ private fun SoundPanel(c: PlaybackController) {
             StepSlider("Voice Boost", p.voiceBoostDb, 0f, 12f, 0.5f, "${fmt1(p.voiceBoostDb)} dB",
                 { c.updateDsp(c.dspParams.copy(voiceBoostDb = it)) }, enabled = !locked)
         }
+        item {
+            val night = p.preset == Preset.NIGHT
+            HudButton({ c.updateDsp(c.dspParams.copy(preset = if (night) Preset.FLAT else Preset.NIGHT)) },
+                selected = night, enabled = !locked, label = if (night) "Night mode (DRC) · on" else "Night mode (DRC) · off")
+        }
+        item { EqBars(p.eqDb, active = p.preset == Preset.CUSTOM && !locked) }
         item {
             StepSlider("Volume", p.volume, 0f, 2f, 0.05f, "${Math.round(p.volume * 100)}%",
                 { c.updateDsp(c.dspParams.copy(volume = it)) }, accent = if (p.volume > 1f) Hud.Amber else Hud.Mint)
@@ -501,6 +534,66 @@ private fun SettingsPanel(c: PlaybackController, onExport: () -> Unit) {
             HudButton(onExport) { Text("Export Diagnostic Package") }
         }
     }
+}
+
+/** 5-band EQ gains, −12…+12 dB around a centre line. Dimmed unless Custom 5-Band is active. */
+@Composable
+private fun EqBars(db: List<Float>, active: Boolean) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(if (active) "5-BAND EQ" else "5-BAND EQ · CUSTOM ONLY", style = Hud.Label)
+        Canvas(Modifier.fillMaxWidth().height(72.dp)) {
+            val slot = size.width / 5f
+            val bw = slot * 0.6f
+            val mid = size.height / 2
+            drawLine(Hud.GlassLine, Offset(0f, mid), Offset(size.width, mid), strokeWidth = 1.dp.toPx())
+            db.forEachIndexed { i, g ->
+                val h = (g.coerceIn(-12f, 12f) / 12f) * mid
+                val top = if (h >= 0) mid - h else mid
+                drawRoundRect(
+                    (if (g >= 0) Hud.Cyan else Hud.Amber).copy(alpha = if (active) 1f else 0.35f),
+                    Offset(i * slot + (slot - bw) / 2, top), Size(bw, kotlin.math.abs(h).coerceAtLeast(2.dp.toPx())),
+                    CornerRadius(3.dp.toPx()),
+                )
+            }
+        }
+        Row {
+            DspParams.EQ_FREQS.forEach { f ->
+                Text(if (f >= 1000) "${(f / 1000).toInt()}k" else "${f.toInt()}", style = Hud.Mono.copy(fontSize = 11.sp, color = Hud.Muted),
+                    modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+            }
+        }
+    }
+}
+
+/** Top-left format badges: resolution (+HDR), frame rate (mint), bitrate (amber). */
+@UnstableApi
+private fun formatBadges(c: PlaybackController): List<Pair<String, Color>> {
+    val v = c.player.videoFormat ?: return emptyList()
+    return listOfNotNull(
+        resolutionLabel(v.width, v.height, v.colorInfo?.colorTransfer, v.sampleMimeType)?.let { it to Hud.TextC },
+        v.frameRate.takeIf { it > 0f }?.let { "${fmt3(it)} fps" to Hud.Mint },
+        v.bitrate.takeIf { it > 0 }?.let { "${fmt1(it / 1e6f)} Mbps" to Hud.Amber },
+    )
+}
+
+/** Width-aware so scope films (3840×1600, 1920×800) get their class label, not their letterboxed height. */
+@androidx.annotation.OptIn(UnstableApi::class)
+internal fun resolutionLabel(width: Int, height: Int, transfer: Int?, mime: String?): String? {
+    val res = when {
+        width >= 3200 || height >= 2000 -> "4K"
+        width >= 2400 || height >= 1400 -> "1440p"
+        width >= 1800 || height >= 1000 -> "1080p"
+        width >= 1200 || height >= 700 -> "720p"
+        height > 0 -> "${height}p"
+        else -> return null
+    }
+    val dyn = when {
+        mime == "video/dolby-vision" -> " Dolby Vision"
+        transfer == C.COLOR_TRANSFER_ST2084 -> " HDR10"
+        transfer == C.COLOR_TRANSFER_HLG -> " HLG"
+        else -> ""
+    }
+    return res + dyn
 }
 
 private fun Preset.label() = when (this) {

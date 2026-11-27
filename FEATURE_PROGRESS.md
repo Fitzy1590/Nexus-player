@@ -37,9 +37,15 @@
 - [x] UI audit (SPEC §6.1–6.2)
 - [x] VOTING_CARD.html + .claude/VOTING_CARD.md regenerated for UI vote
 - [x] Governance: `.claude/rules/audio-dsp.md` added; Stop hook (SDK-guarded, pipefail) added
-- [ ] **User vote** — Option A [ ] / B [ ] / C [ ]
-- [ ] Build: tokens + bundled fonts · icon transport bar · Sound side-drawer · volume/seek HUD · TV focus pass · Windows shell
+- [x] **User vote** — Option A [x] / B [ ] / C [ ] · rename to com.fitzy.nexusplayer · violet accent · keep 5/10/15/30 seek (2026-11-27)
+- [x] applicationId → `com.fitzy.nexusplayer` (namespace/Kotlin packages stay `com.nexus.player`)
+- [x] Tokens: Cinema Glass 75 % + white hairline, violet selected state; Outfit / Inter / JetBrains Mono bundled in `res/font`
+- [x] Icon + label transport bar (`HudIcons`), larger mono timecode
+- [x] Right-edge Sound drawer: presets, Voice Boost, Night mode (DRC) toggle, volume, 5-band EQ bars
+- [x] Format badges (4K/HDR10/HLG/Dolby Vision · fps · Mbps), seek chip `+30s ▸ 01:13:14`
+- [x] `./gradlew assembleDebug testDebugUnitTest lintDebug` → BUILD SUCCESSFUL, 34 tests pass, lint 0 errors (2026-11-27)
+- [ ] Visual/device check on Android TV + phone (no emulator; Robolectric screen capture timed out)
+- [ ] Windows Tauri 2 shell (X2) — not started; libmpv embedding risk open (SPEC §5)
 
 ## Known gaps
-- Inter / JetBrains Mono not bundled (font hosts returned 403); system sans/mono used.
 - libmpv fallback + Windows Tauri shell pending (licensing / embedding risks, SPEC §5).

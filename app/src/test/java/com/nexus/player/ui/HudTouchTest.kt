@@ -22,6 +22,14 @@ import org.robolectric.annotation.Config
 class HudTouchTest {
     @get:Rule val rule = createComposeRule()
 
+    @Test fun iconLabelButtonTapFiresOnClick() {
+        var clicks = 0
+        rule.setContent { HudButton({ clicks++ }, icon = HudIcons.Sound, label = "Sound") }
+        rule.onNodeWithText("Sound").performClick()
+        rule.waitForIdle()
+        assertEquals(1, clicks)
+    }
+
     @Test fun touchTapFiresOnClick() {
         var clicks = 0
         rule.setContent { HudButton({ clicks++ }) { Text("Tap me") } }

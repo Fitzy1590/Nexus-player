@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -35,6 +36,8 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -42,6 +45,8 @@ import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Border
 import androidx.tv.material3.Button
 import androidx.tv.material3.ButtonDefaults
+import androidx.tv.material3.Icon
+import com.nexus.player.R
 import androidx.tv.material3.Text
 
 object Hud {
@@ -53,10 +58,17 @@ object Hud {
     val Mint = Color(0xFF10B981)
     val Amber = Color(0xFFF59E0B)
     val Cyan = Color(0xFF00F2FE)
+    val Violet = Color(0xFF7C3AED)
+    /** Cinema Glass: 75 % obsidian + 12 % white hairline. Android has no backdrop blur over SurfaceView. */
+    val Glass = Color(0xBF0B0E14)
+    val GlassLine = Color(0x1FFFFFFF)
 
-    // Inter / JetBrains Mono not bundled yet (font download blocked in build env); system families stand in.
-    val Ui = TextStyle(fontFamily = FontFamily.SansSerif, fontSize = 14.sp, color = TextC)
-    val Mono = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 13.sp, color = Cyan)
+    val InterFamily = FontFamily(Font(R.font.inter_400), Font(R.font.inter_600, FontWeight.SemiBold))
+    val OutfitFamily = FontFamily(Font(R.font.outfit_600, FontWeight.SemiBold))
+    val MonoFamily = FontFamily(Font(R.font.jetbrains_mono_400), Font(R.font.jetbrains_mono_600, FontWeight.SemiBold))
+    val Ui = TextStyle(fontFamily = InterFamily, fontSize = 14.sp, color = TextC)
+    val Title = TextStyle(fontFamily = OutfitFamily, fontWeight = FontWeight.SemiBold, fontSize = 18.sp, color = TextC)
+    val Mono = TextStyle(fontFamily = MonoFamily, fontSize = 13.sp, color = Cyan)
     val Label = Ui.copy(fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Muted, letterSpacing = 1.sp)
 
     val Shape = RoundedCornerShape(6.dp)
@@ -64,17 +76,19 @@ object Hud {
 }
 
 fun Modifier.glass(): Modifier = this
-    .background(Hud.Panel, RoundedCornerShape(8.dp))
-    .border(1.dp, Hud.Line, RoundedCornerShape(8.dp))
+    .background(Hud.Glass, RoundedCornerShape(10.dp))
+    .border(1.dp, Hud.GlassLine, RoundedCornerShape(10.dp))
 
-/** Compose TV button: 1.05× focus scale, 3 dp cyan focus border, ≥44 dp target. */
+/** Compose TV button: 1.05× focus scale, 3 dp cyan focus border, ≥44 dp target; selected = violet. Optional leading icon. */
 @Composable
 fun HudButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     selected: Boolean = false,
     enabled: Boolean = true,
-    content: @Composable RowScope.() -> Unit,
+    icon: ImageVector? = null,
+    label: String? = null,
+    content: @Composable RowScope.() -> Unit = {},
 ) {
     Button(
         onClick = onClick,
@@ -86,20 +100,23 @@ fun HudButton(
         scale = ButtonDefaults.scale(focusedScale = Hud.FOCUS_SCALE),
         glow = ButtonDefaults.glow(),
         border = ButtonDefaults.border(
-            border = Border(BorderStroke(1.dp, if (selected) Hud.Mint else Hud.Line), shape = Hud.Shape),
+            border = Border(BorderStroke(1.dp, if (selected) Hud.Violet else Hud.GlassLine), shape = Hud.Shape),
             focusedBorder = Border(BorderStroke(3.dp, Hud.Cyan), shape = Hud.Shape),
         ),
         colors = ButtonDefaults.colors(
-            containerColor = Color.Transparent,
-            contentColor = if (selected) Hud.Mint else Hud.TextC,
+            containerColor = if (selected) Hud.Violet.copy(alpha = 0.22f) else Color.Transparent,
+            contentColor = Hud.TextC,
             focusedContainerColor = Color(0x1A00F2FE),
             focusedContentColor = Hud.Cyan,
             disabledContainerColor = Color.Transparent,
             disabledContentColor = Hud.Muted,
         ),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        content = content,
-    )
+        contentPadding = PaddingValues(horizontal = if (icon != null) 12.dp else 16.dp, vertical = 8.dp),
+    ) {
+        if (icon != null) Icon(icon, contentDescription = label, modifier = Modifier.size(20.dp))
+        if (label != null) Text(label, modifier = if (icon != null) Modifier.padding(start = 8.dp) else Modifier)
+        content()
+    }
 }
 
 /**
