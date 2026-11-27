@@ -21,6 +21,14 @@ class Prefs(ctx: Context) {
     var bufferMin: Int
         get() = sp.getInt("buffer_min", 3)
         set(v) = sp.edit().putInt("buffer_min", v).apply()
+    /** Tunneled video+audio (hardware A/V sync). Bypasses DSP; next playback. */
+    var tunneling: Boolean
+        get() = sp.getBoolean("tunneling", false)
+        set(v) = sp.edit().putBoolean("tunneling", v).apply()
+    /** Auto = bitstream passthrough when the sink supports it; off = always PCM so DSP works. Next playback. */
+    var passthroughAuto: Boolean
+        get() = sp.getBoolean("passthrough_auto", true)
+        set(v) = sp.edit().putBoolean("passthrough_auto", v).apply()
     var afr: Boolean
         get() = sp.getBoolean("afr", true)
         set(v) = sp.edit().putBoolean("afr", v).apply()

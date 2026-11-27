@@ -10,9 +10,11 @@ import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.audio.AudioCapabilities
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import com.nexus.player.audio.DspEngine
 import com.nexus.player.audio.NexusAudioProcessor
 import com.nexus.player.diag.DiagLog
@@ -48,7 +50,7 @@ object PlayerFactory {
     }
 
     /** [forwardMs] is a time ceiling; the byte cap is the real limit for high-bitrate 4K. */
-    fun create(ctx: Context, dsp: DspEngine, headers: Map<String, String>, forwardMs: Int): ExoPlayer {
+    fun create(ctx: Context, dsp: DspEngine, headers: Map<String, String>, forwardMs: Int, allowPassthrough: Boolean = true, tunneled: Boolean = false): ExoPlayer {
         val am = ctx.getSystemService(ActivityManager::class.java)
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(forwardMs, forwardMs, 500, 1_000)
@@ -71,6 +73,7 @@ object PlayerFactory {
                 enableAudioTrackPlaybackParams: Boolean,
             ): AudioSink = DefaultAudioSink.Builder(context)
                 .setAudioProcessors(arrayOf(NexusAudioProcessor(dsp)))
+                .apply { if (!allowPassthrough) setAudioCapabilities(AudioCapabilities.DEFAULT_AUDIO_CAPABILITIES) }
                 .setEnableFloatOutput(enableFloatOutput)
                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                 .build()
@@ -78,6 +81,7 @@ object PlayerFactory {
 
         return ExoPlayer.Builder(ctx, renderers)
             .setLoadControl(loadControl)
+            .setTrackSelector(DefaultTrackSelector(ctx).apply { setParameters(buildUponParameters().setTunnelingEnabled(tunneled)) })
             .setMediaSourceFactory(DefaultMediaSourceFactory(dataSource))
             .setAudioAttributes(
                 AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),

@@ -49,15 +49,18 @@ class PlaybackController(
     private val onCompleted: () -> Unit = {},
 ) {
     val prefs = Prefs(activity)
-    private val dsp = DspEngine().apply { params = prefs.dsp }
-    val player: ExoPlayer = PlayerFactory.create(activity, dsp, request.headers, prefs.bufferMin * 60_000)
+    private val dsp = DspEngine().apply { params = prefs.dsp; bypass = prefs.tunneling }
+    val player: ExoPlayer = PlayerFactory.create(activity, dsp, request.headers, prefs.bufferMin * 60_000, prefs.passthroughAuto, tunneled = prefs.tunneling)
     private val dao = NexusDb.get(activity).playbackState()
     private val key = NexusDb.keyFor(request.uri)
     private var saved: PlaybackState? = null
     private var tracksRestored = false
 
     var dspParams by mutableStateOf(dsp.params); private set
-    var passthrough by mutableStateOf(false); private set
+    /** True when the sink skips DSP: bitstream passthrough or tunneled playback. */
+    var passthrough by mutableStateOf(prefs.tunneling); private set
+    val tunneled = prefs.tunneling
+    val displayHdr: String = hdrLabel(currentDisplay()?.hdrCapabilities?.supportedHdrTypes)
     var resumePrompt by mutableStateOf<PlaybackState?>(null); private set
     var speed by mutableFloatStateOf(prefs.globalSpeed); private set
     var perItemSpeed by mutableStateOf(false); private set
@@ -94,7 +97,7 @@ class PlaybackController(
 
     private val analytics = object : AnalyticsListener {
         override fun onAudioTrackInitialized(t: AnalyticsListener.EventTime, c: AudioSink.AudioTrackConfig) {
-            passthrough = !Util.isEncodingLinearPcm(c.encoding)
+            passthrough = tunneled || !Util.isEncodingLinearPcm(c.encoding)
             DiagLog.log("audio") { "track enc=${c.encoding} sr=${c.sampleRate} passthrough=$passthrough" }
             applyVolume()
         }
@@ -276,6 +279,14 @@ class PlaybackController(
         const val LONG_JUMP_MS = 60_000L
         const val AUTOSAVE_MS = 10_000L
         private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+        /** Display HDR types (Display.HdrCapabilities constants) → label; empty/absent = SDR only. */
+        fun hdrLabel(types: IntArray?): String {
+            val names = (types ?: intArrayOf()).sorted().mapNotNull {
+                when (it) { 1 -> "DV"; 2 -> "HDR10"; 3 -> "HLG"; 4 -> "HDR10+"; else -> null }
+            }
+            return if (names.isEmpty()) "SDR only" else names.joinToString(" · ")
+        }
 
         fun mimeHint(type: String?): String? = when (type?.lowercase()) {
             "application/x-mpegurl", "application/vnd.apple.mpegurl" -> MimeTypes.APPLICATION_M3U8
