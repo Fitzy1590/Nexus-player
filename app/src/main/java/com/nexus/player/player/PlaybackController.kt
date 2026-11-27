@@ -50,7 +50,7 @@ class PlaybackController(
 ) {
     val prefs = Prefs(activity)
     private val dsp = DspEngine().apply { params = prefs.dsp }
-    val player: ExoPlayer = PlayerFactory.create(activity, dsp, request.headers)
+    val player: ExoPlayer = PlayerFactory.create(activity, dsp, request.headers, prefs.bufferMin * 60_000)
     private val dao = NexusDb.get(activity).playbackState()
     private val key = NexusDb.keyFor(request.uri)
     private var saved: PlaybackState? = null

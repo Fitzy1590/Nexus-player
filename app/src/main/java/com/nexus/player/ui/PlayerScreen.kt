@@ -283,7 +283,7 @@ fun PlayerScreen(c: PlaybackController, onExportDiagnostics: () -> Unit) {
 
         if (!(overlay && panel == Panel.SOUND)) Row(Modifier.align(Alignment.TopEnd).padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (c.passthrough) Pill("PASSTHROUGH", Hud.Amber)
-            else if (c.dspParams.preset != Preset.FLAT || c.dspParams.voiceBoostDb > 0f) {
+            else if (overlay && (c.dspParams.preset != Preset.FLAT || c.dspParams.voiceBoostDb > 0f)) {
                 Pill("${c.dspParams.preset.label()} +${fmt1(c.dspParams.voiceBoostDb)} dB", Hud.Mint)
             }
         }
@@ -468,7 +468,7 @@ private fun StatsPanel(c: PlaybackController, pos: Long, buf: Long, modifier: Mo
         "VIDEO" to (v?.let { "${it.width}×${it.height} · ${it.sampleMimeType?.substringAfter('/')} · ${fmt3(it.frameRate)}" } ?: "—"),
         "BITRATE" to (v?.bitrate?.takeIf { it > 0 }?.let { "${fmt1(it / 1e6f)} Mbps" } ?: "—"),
         "NETWORK" to (if (c.bandwidthBps > 0) "${fmt1(c.bandwidthBps / 1e6f)} Mbps" else "—"),
-        "BUFFER" to "${fmt1((buf - pos).coerceAtLeast(0) / 1000f)} s / ${PlayerFactory.FORWARD_BUFFER_MS / 1000} s · back ${PlayerFactory.BACK_BUFFER_MS / 1000} s",
+        "BUFFER" to "${fmt1((buf - pos).coerceAtLeast(0) / 1000f)} s / ${c.prefs.bufferMin * 60} s · back ${PlayerFactory.BACK_BUFFER_MS / 1000} s",
         "AUDIO" to (a?.let { "${it.sampleMimeType?.substringAfter('/')} · ${it.channelCount} ch" + if (c.passthrough) " · passthrough" else " · PCM" } ?: "—"),
         "DISPLAY" to "${fmt3(c.displayHz)} Hz" + if (c.prefs.afr) " · AFR" else "",
     )
@@ -545,7 +545,7 @@ private fun TrackPanel(c: PlaybackController, type: Int) {
 private fun SpeedPanel(c: PlaybackController) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(Prefs.SPEEDS) { s -> HudButton({ c.setSpeed(s, c.perItemSpeed) }, selected = c.speed == s) { Text("${fmt2(s)}×") } }
+            items(Prefs.SPEEDS) { s -> HudButton({ c.setSpeed(s, c.perItemSpeed) }, selected = c.speed == s) { Text("${fmt1(s)}×") } }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             HudButton({ c.setSpeed(c.speed, false) }, selected = !c.perItemSpeed) { Text("Global") }
@@ -558,6 +558,7 @@ private fun SpeedPanel(c: PlaybackController) {
 @Composable
 internal fun SettingsPanel(prefs: Prefs, onExport: () -> Unit) {
     var step by remember { mutableIntStateOf(prefs.seekStepSec) }
+    var buf by remember { mutableIntStateOf(prefs.bufferMin) }
     var auto by remember { mutableStateOf(prefs.autoResume) }
     var afr by remember { mutableStateOf(prefs.afr) }
     var diag by remember { mutableStateOf(DiagLog.enabled) }
@@ -565,6 +566,10 @@ internal fun SettingsPanel(prefs: Prefs, onExport: () -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Seek step", style = Hud.Ui, modifier = Modifier.width(112.dp))
             Prefs.SEEK_STEPS.forEach { s -> HudButton({ step = s; prefs.seekStepSec = s }, selected = step == s) { Text("${s}s") } }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Buffer ahead", style = Hud.Ui, modifier = Modifier.width(112.dp))
+            Prefs.BUFFER_MINUTES.forEach { m -> HudButton({ buf = m; prefs.bufferMin = m }, selected = buf == m) { Text("$m min") } }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Resume", style = Hud.Ui, modifier = Modifier.width(112.dp))
