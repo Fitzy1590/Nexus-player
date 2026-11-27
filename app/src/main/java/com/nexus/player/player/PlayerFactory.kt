@@ -15,6 +15,7 @@ import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import com.nexus.player.audio.DspEngine
 import com.nexus.player.audio.NexusAudioProcessor
+import com.nexus.player.diag.DiagLog
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 
@@ -35,6 +36,16 @@ object PlayerFactory {
             .connectTimeout(8, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
             .followSslRedirects(true)
+            .addInterceptor { chain ->
+                val req = chain.request()
+                val res = chain.proceed(req)
+                DiagLog.log("http") {
+                    "${res.code} ${req.url.host}${req.url.encodedPath} range=${req.header("Range")} " +
+                        "type=${res.header("Content-Type")} len=${res.header("Content-Length")} " +
+                        "cr=${res.header("Content-Range")} ar=${res.header("Accept-Ranges")} proto=${res.protocol}"
+                }
+                res
+            }
             .build()
     }
 
