@@ -84,7 +84,10 @@ class PlaybackController(
             DiagLog.log("player") { "error ${e.errorCodeName}: ${e.message} cause=${e.cause}" }
             // Surface the HTTP status (and server body type) even when diagnostic logging is off.
             val http = generateSequence(e.cause) { it.cause }.filterIsInstance<HttpDataSource.InvalidResponseCodeException>().firstOrNull()
-            val detail = http?.let { "HTTP ${it.responseCode} from ${it.dataSpec.uri.host}" }
+            val detail = http?.let {
+                val body = String(it.responseBody, Charsets.UTF_8).replace(Regex("\\s+"), " ").take(160)
+                com.nexus.player.diag.Redactor.redact("HTTP ${it.responseCode} from ${it.dataSpec.uri.host} @byte ${it.dataSpec.position} body=$body")
+            }
             error = "${e.errorCodeName}\n${detail ?: e.message ?: ""}"
         }
     }
